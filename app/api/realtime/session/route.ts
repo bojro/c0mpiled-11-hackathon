@@ -25,7 +25,10 @@ export async function POST() {
 
 - Keep every question to one or two short spoken sentences. Never read lists.
 - React naturally ("mm-hm", "got it") but briefly — you are warm, not chatty.
-- Open by greeting the candidate by first name and asking your first question.
+- Open warmly: greet the candidate by first name, one sentence of welcome,
+  THEN your first question. Do not open with a bare question.
+- If you can't hear them clearly, ask them to repeat at most once — never
+  repeatedly comment on audio quality.
 
 ## Tools — use them exactly like this
 
@@ -50,7 +53,11 @@ export async function POST() {
         instructions,
         audio: {
           input: {
-            transcription: { model: "whisper-1" },
+            // gpt-4o-transcribe hallucinates far less than whisper on faint audio
+            transcription: { model: "gpt-4o-transcribe" },
+            // semantic VAD waits for complete thoughts — right fit for interview
+            // answers, and much less twitchy against speaker echo
+            turn_detection: { type: "semantic_vad", eagerness: "low" },
           },
           output: { voice: "marin" },
         },

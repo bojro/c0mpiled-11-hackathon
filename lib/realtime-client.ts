@@ -80,7 +80,9 @@ export async function startRealtimeInterview(
     audioEl.srcObject = e.streams[0];
   };
 
-  const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const mic = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+  });
   for (const track of mic.getTracks()) pc.addTrack(track, mic);
 
   const dc = pc.createDataChannel("oai-events");
@@ -96,6 +98,8 @@ export async function startRealtimeInterview(
     "response.output_audio_transcript.done",
     "response.done",
     "response.function_call_arguments.done",
+    "output_audio_buffer.started",
+    "output_audio_buffer.stopped",
     "error",
   ]);
 
@@ -148,6 +152,10 @@ export async function startRealtimeInterview(
         }
         break;
       }
+      case "output_audio_buffer.started":
+        cb.onPhase("speaking");
+        break;
+      case "output_audio_buffer.stopped":
       case "response.done":
         cb.onPhase("listening");
         break;
