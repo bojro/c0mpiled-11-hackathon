@@ -52,6 +52,37 @@ The agent's questioning strategy is not invented — it's the Amazon Bar Raiser 
 4. **Consistency under pressure.** Real stories stay consistent across follow-ups because they're anchored to real details; invented ones drift. **This is the computable signal** — the agent detects when a story shifts between question 2 and question 5.
 5. **Drove decisions vs. executed assigned tasks.**
 
+### Recruiter console spec (decided)
+
+Build against `data/mock-report.ts` — it covers every state the UI has to survive (all four verdicts, all four ownership signals, a one-evidence finding and a three-evidence finding, a long quote, and a bullet the interview never reached).
+
+**Layout: split view.** Résumé left, evidence right. Clicking a bullet on the left fills the right panel. No expand/collapse — evidence always has room, and nothing reflows under the judge's cursor mid-demo.
+
+```
+┌──────────────────┬───────────────────────┐
+│ RÉSUMÉ           │ EVIDENCE              │
+│ ┃ Built a real-  │ Q: What did you       │
+│ ┃ time collab... │    consider instead?  │
+│ ┗ green          │ A: "We looked hard    │
+│ ┃ Led a team of  │    at OT first..."    │
+│ ┗ yellow  ◀ sel  │ ───────────────────   │
+│ ┃ Architected... │ consistency  ✓        │
+│ ┗ red            │ crustdata    ✓        │
+│ ┃ Reduced cloud  │ github       —        │
+│ ┗ unverified     │                       │
+└──────────────────┴───────────────────────┘
+```
+
+**Above the fold: verdict counts only** — `1 green · 1 yellow · 1 red · 1 unverified`. Not the summary paragraph; the color-coded bullets are the product and shouldn't be pushed down.
+
+**Visual: dark, dense, technical.** Near-black, monospace for quotes, colour used only where verdicts carry it. Holds up under projector lighting at 10 PM.
+
+Two things to get right, because they're what make it credible rather than a black box:
+- **The quote is the payload.** `evidence[].excerpt` is the candidate's actual words. Give it room and set it in mono — it's what a recruiter expands to audit the verdict.
+- **`unverified` must not read as an accusation.** Grey, not red. It means "no external record", which is the honest answer for most real work.
+
+Known tradeoff: split view doesn't collapse to mobile. Fine for a laptop demo — don't spend time on responsive.
+
 ### Still unconfirmed
 - **Submission format.** Best current understanding is *upload a video* — not confirmed. If true, the live-demo risk largely disappears and the 9:30 recording becomes the primary deliverable, not the insurance policy. **Confirm this with an organizer.**
 
