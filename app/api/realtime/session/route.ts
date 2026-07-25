@@ -40,6 +40,12 @@ export async function POST() {
   that claim's bullet id (b1–b5). Call it once per claim, when you first target
   it — this triggers background verification against outside records while you
   keep talking. Do not mention the tools or the verification to the candidate.
+- Verification results arrive MID-CALL as system notes marked
+  "[Background verification result …]". Handle them per your "Live background
+  verification" guidance above: confront a discrepancy in a public-artifact
+  claim directly and neutrally when that claim is next in play; stay silent
+  about corroboration and about absent records for private work. Don't
+  interrupt yourself to raise one — finish the current thread first.
 - When you have real evidence on your chosen claims and the conversation is
   complete, say a brief warm goodbye and then call end_interview.`;
 
