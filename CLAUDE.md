@@ -23,12 +23,7 @@
 **Positioning both ways:** for the *company*, an extra concrete screening layer that catches résumé inflation early. For the *applicant*, it's not a gate — it's space to actually talk and prove they know their stuff, plus more context about the company. Say this in the pitch; judges will ask about the candidate side.
 
 ### Why this idea is well-matched to this room
-Three judges' companies sit directly adjacent, so they'll grasp the demo instantly:
-- **Satya Patel (Superset)** — recruiting platform. This is his category.
-- **Will Bodewes (Phonely)** — AI phone calls.
-- **Vlad Baskakov (VOYGR)** — offering Callwright API access at this event.
-
-Using VOYGR's Callwright or Phonely for the voice layer is both the fastest path to a working demo and a judge-alignment play. **Ask Vlad for Callwright access early — before 7:00 PM.**
+See the judge research section below. Short version: the voice-adjacent judges are **Miso Labs** (emotive TTS foundation models) and **Phonely** (voice agents). The panel's dominant bias is **autonomous agent infrastructure** — build accordingly.
 
 ### Scope discipline (~3 hours)
 The bullet-by-bullet red/yellow/green report **is** the product. Build backwards from that screen.
