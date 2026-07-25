@@ -1,5 +1,49 @@
 # c0mpiled-11: Startup School Hackathon
 
+**Repo:** https://github.com/bojro/c0mpiled-11-hackathon (public)
+**Team:** @bojro + @czhao-mrai (invited, write access)
+
+---
+
+## THE BUILD: AI-native applicant screening (SaaS Challengers track)
+
+**One-liner:** Replace the resume keyword filter with a voice AI interview that happens *at the moment you apply* — verifying what candidates actually did, bullet by bullet.
+
+**Buyer:** Startups. They have no recruiting budget, no ATS worth paying for, and drown in AI-generated applications. Workday/Greenhouse are built for enterprises with recruiting teams; startups have a founder reading 400 résumés at midnight.
+
+**Why now:** LLMs made résumés worthless as signal — everyone passes the keyword checker now. The filter has to move from *what you wrote* to *what you can defend out loud*. And voice AI just got cheap and fast enough to do this at application volume.
+
+**Core insight (from @1cew):** people write résumés in "LinkedIn voice" — fancy keywords aimed at beating an automated checker. Don't fight that; *expand* on it. An AI talks to the applicant about their own résumé, asks pointed follow-ups on each bullet, and makes them substantiate it. Overgeneralizations collapse under questioning. Real builders get more room to show off than a résumé ever gave them.
+
+**The artifact (this is the demo):** a screening report the recruiter opens, containing
+- **Red / yellow / green per résumé bullet** — expandable to show the exact exchange that produced the verdict
+- Full transcript + raw audio recording
+- Summary judgment for the whole candidate
+
+**Positioning both ways:** for the *company*, an extra concrete screening layer that catches résumé inflation early. For the *applicant*, it's not a gate — it's space to actually talk and prove they know their stuff, plus more context about the company. Say this in the pitch; judges will ask about the candidate side.
+
+### Why this idea is well-matched to this room
+Three judges' companies sit directly adjacent, so they'll grasp the demo instantly:
+- **Satya Patel (Superset)** — recruiting platform. This is his category.
+- **Will Bodewes (Phonely)** — AI phone calls.
+- **Vlad Baskakov (VOYGR)** — offering Callwright API access at this event.
+
+Using VOYGR's Callwright or Phonely for the voice layer is both the fastest path to a working demo and a judge-alignment play. **Ask Vlad for Callwright access early — before 7:00 PM.**
+
+### Scope discipline (~3 hours)
+The bullet-by-bullet red/yellow/green report **is** the product. Build backwards from that screen.
+- Golden path: one seeded résumé → one voice interview → one report. That's the whole demo.
+- Do not build: applicant accounts, job posting CRUD, email, scheduling, multi-role support.
+- If live voice is fragile on venue wifi, pre-record the interview at 9:30 and demo the report generation live. **The report is the moat, not the phone call.**
+- Hexclave fits naturally for recruiter auth + org/RBAC (and it's a $1,000 side prize) — but only wire it in once the golden path works.
+
+### Open questions to settle at lock-in (7:00 PM)
+- Voice in-browser (WebRTC/realtime) vs. actual outbound phone call? Browser is faster to build and safer to demo; a real phone call is more impressive on stage.
+- What generates the red/yellow/green verdict — and can we show *why*? The expandable evidence is what makes it credible instead of a black box.
+
+---
+
+
 **Host:** c0mpiled (by Transpose Platform) · 27 South Park Suite 100, San Francisco
 **Date:** Friday, July 24, 2026, 6:00–11:00 PM · ~148 attendees
 **Source:** https://luma.com/compiled-cp9o
@@ -90,6 +134,23 @@ Ask/listen for these — they were not on the event page:
 - Pre-existing code policy (assume: starting fresh is expected; scaffolds/boilerplate are usually fine, disclose it)
 - Demo format and time limit (demos are listed as **optional** — but doing one is almost certainly required to win)
 - Whether judging is per-track or global
+
+## Git rules (2-person team, 3 hours — process must be light)
+
+**Commit frequently.** Every working unit of change, and never go more than ~15 minutes without a commit. Push immediately after every commit — `origin` is the backup. A laptop dying at 9:00 PM with 2 hours of uncommitted work is a real way to lose this.
+
+**Branching:**
+- `main` is always demoable. Never push broken code to `main`.
+- Work on short-lived branches: `feat/<thing>`, e.g. `feat/report-view`, `feat/voice-loop`.
+- Merge to `main` early and often — every 20–30 minutes, not at the end. Long-lived branches are how a 2-person team ends up in a merge conflict at 9:45 PM.
+- No branch protection, no required reviews. Self-merge is fine tonight; speed beats process at this scale.
+- `git pull --rebase` before pushing to keep history linear and avoid merge commit noise.
+
+**Conflict avoidance beats conflict resolution — split by ownership.** Agree on file/directory boundaries at lock-in so the two of you rarely touch the same file. Natural split for this build: one person owns the voice/interview pipeline, the other owns the report UI. Shared types/schema go in one small file — agree on its shape *first*, then don't edit it unilaterally.
+
+**Before merging to `main`:** pull, rebase, confirm the golden path still runs. That's the whole check.
+
+**After 9:30 PM (feature freeze):** `main` only, no branches, demo-critical fixes only.
 
 ## Build doctrine for tonight
 
