@@ -8,6 +8,24 @@
  * mirror transcript/tool activity into our engine via /api/session-sync.
  */
 
+/** Batched debug shipper — everything lands in .debug/realtime.jsonl. */
+const debugQueue: Record<string, unknown>[] = [];
+let debugTimer: ReturnType<typeof setInterval> | null = null;
+function dbg(kind: string, data: Record<string, unknown> = {}) {
+  debugQueue.push({ kind, ...data });
+  if (!debugTimer) {
+    debugTimer = setInterval(() => {
+      if (debugQueue.length === 0) return;
+      const entries = debugQueue.splice(0, debugQueue.length);
+      void fetch("/api/debug-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entries }),
+      }).catch(() => {});
+    }, 1500);
+  }
+}
+
 export type RealtimeCallbacks = {
   onPhase: (phase: "speaking" | "listening" | "thinking") => void;
   onAgentLine: (text: string) => void;
@@ -34,6 +52,7 @@ export async function startRealtimeInterview(
   cb: RealtimeCallbacks,
 ): Promise<RealtimeHandle> {
   // 1. Server mints the ephemeral secret bound to a fresh interview session.
+  dbg("lifecycle", { step: "minting" });
   const mint = await fetch("/api/realtime/session", { method: "POST" });
   if (!mint.ok) {
     const body = (await mint.json().catch(() => ({}))) as { error?: string };
@@ -52,7 +71,9 @@ export async function startRealtimeInterview(
     }).catch(() => {});
 
   // 2. WebRTC setup.
+  dbg("lifecycle", { step: "minted", sessionId });
   const pc = new RTCPeerConnection();
+  pc.onconnectionstatechange = () => dbg("webrtc", { state: pc.connectionState });
   const audioEl = new Audio();
   audioEl.autoplay = true;
   pc.ontrack = (e) => {
@@ -63,13 +84,40 @@ export async function startRealtimeInterview(
   for (const track of mic.getTracks()) pc.addTrack(track, mic);
 
   const dc = pc.createDataChannel("oai-events");
+  const seenDeltaTypes = new Set<string>();
+
+  const HANDLED = new Set([
+    "input_audio_buffer.speech_started",
+    "input_audio_buffer.speech_stopped",
+    "conversation.item.input_audio_transcription.completed",
+    "response.audio_transcript.delta",
+    "response.output_audio_transcript.delta",
+    "response.audio_transcript.done",
+    "response.output_audio_transcript.done",
+    "response.done",
+    "response.function_call_arguments.done",
+    "error",
+  ]);
 
   dc.onmessage = (msg) => {
     let ev: RtEvent;
     try {
       ev = JSON.parse(msg.data) as RtEvent;
     } catch {
+      dbg("unparseable", { raw: String(msg.data).slice(0, 300) });
       return;
+    }
+
+    // Deltas are noisy — log only their first occurrence per type.
+    if (ev.type.endsWith(".delta")) {
+      if (!seenDeltaTypes.has(ev.type)) {
+        seenDeltaTypes.add(ev.type);
+        dbg("event", { type: ev.type, first: true });
+      }
+    } else if (HANDLED.has(ev.type)) {
+      dbg("event", { type: ev.type, transcript: ev.transcript?.slice(0, 120), name: ev.name, args: ev.arguments?.slice(0, 200), error: ev.error?.message });
+    } else {
+      dbg("UNHANDLED", { type: ev.type, raw: JSON.stringify(ev).slice(0, 400) });
     }
 
     switch (ev.type) {
@@ -140,7 +188,9 @@ export async function startRealtimeInterview(
     }
   };
 
+  dc.onclose = () => dbg("lifecycle", { step: "datachannel closed" });
   dc.onopen = () => {
+    dbg("lifecycle", { step: "datachannel open" });
     // Kick the model to open the conversation.
     dc.send(JSON.stringify({ type: "response.create" }));
     cb.onPhase("speaking");
@@ -158,9 +208,11 @@ export async function startRealtimeInterview(
     body: offer.sdp,
   });
   if (!sdpRes.ok) {
+    dbg("lifecycle", { step: "sdp FAILED", status: sdpRes.status, body: (await sdpRes.text()).slice(0, 300) });
     pc.close();
     throw new Error(`Realtime connection failed (${sdpRes.status})`);
   }
+  dbg("lifecycle", { step: "sdp ok" });
   await pc.setRemoteDescription({ type: "answer", sdp: await sdpRes.text() });
 
   return {
