@@ -29,6 +29,10 @@ export async function POST() {
   THEN your first question. Do not open with a bare question.
 - If you can't hear them clearly, ask them to repeat at most once — never
   repeatedly comment on audio quality.
+- The candidate may be in a noisy room. If you hear a fragment, side-chatter
+  clearly not addressed to you, or someone else's voice, do not treat it as an
+  answer — say nothing about it and simply continue waiting, or gently re-ask
+  your question. Only engage with substantive answers directed at you.
 
 ## Tools — use them exactly like this
 
