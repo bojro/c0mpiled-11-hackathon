@@ -32,9 +32,28 @@ The bullet-by-bullet red/yellow/green report **is** the product. Build backwards
 - If live voice is fragile on venue wifi, pre-record the interview at 9:30 and demo the report generation live. **The report is the moat, not the phone call.**
 - Hexclave fits naturally for recruiter auth + org/RBAC (and it's a $1,000 side prize) — but only wire it in once the golden path works.
 
-### Open questions to settle at lock-in (7:00 PM)
-- Voice in-browser (WebRTC/realtime) vs. actual outbound phone call? Browser is faster to build and safer to demo; a real phone call is more impressive on stage.
-- What generates the red/yellow/green verdict — and can we show *why*? The expandable evidence is what makes it credible instead of a black box.
+### Decisions locked
+
+| Decision | Choice | Why |
+|---|---|---|
+| Voice | **Browser-native** Web Speech API (STT) + SpeechSynthesis (TTS), continuous mode | Zero API keys, zero vendor latency, cannot fail on venue wifi. Swap TTS for something nicer only if there's time after the golden path works. |
+| Autonomy | **Investigates autonomously, never decides** | Recruiting is high-stakes and rule-based filters get gamed. The agent picks its own probes and dispatches its own verification calls; a human reads the report and decides. Say this confidently on stage — it's a product judgment, not a cop-out. |
+| Verdict source | Voice interview + CrustData (employer/title/dates) + GitHub (do commits back the claim) + self-consistency across follow-ups | Multi-source cross-referencing is what makes this an investigator rather than a chatbot. |
+| Deployment | **Local-first.** No Vercel deploy unless submission requires a URL. | Superseded earlier advice: that assumed a live projector demo. If submission is a recorded video, deploy risk disappears and the ~10 min is better spent on the report UI. Revisit at 9:00 only if needed. |
+| Models | `claude-haiku-4-5` for the build loop, `claude-opus-5` for the demo | Flip with `MODEL_TIER=demo`. The two tiers take different params — see `lib/model.ts`; Haiku rejects `effort` outright. |
+
+### Interrogation protocol (from how top firms actually screen)
+
+The agent's questioning strategy is not invented — it's the Amazon Bar Raiser / Google project-deep-dive protocol, automated:
+
+1. **Probe 3–5 levels deep on a single claim.** "What alternatives did you consider?" "What data convinced them?" "What would you do differently?"
+2. **Separate "I" from "we."** The highest-signal question in the industry, and the reason `ownershipSignal` is a first-class column in the report rather than buried in prose.
+3. **Implementation vs. design doc.** Can they go multiple levels deep, or did they only read the spec?
+4. **Consistency under pressure.** Real stories stay consistent across follow-ups because they're anchored to real details; invented ones drift. **This is the computable signal** — the agent detects when a story shifts between question 2 and question 5.
+5. **Drove decisions vs. executed assigned tasks.**
+
+### Still unconfirmed
+- **Submission format.** Best current understanding is *upload a video* — not confirmed. If true, the live-demo risk largely disappears and the 9:30 recording becomes the primary deliverable, not the insurance policy. **Confirm this with an organizer.**
 
 ---
 
@@ -141,7 +160,21 @@ Ask/listen for these — they were not on the event page:
 - No branch protection, no required reviews. Self-merge is fine tonight; speed beats process at this scale.
 - `git pull --rebase` before pushing to keep history linear and avoid merge commit noise.
 
-**Conflict avoidance beats conflict resolution — split by ownership.** Agree on file/directory boundaries at lock-in so the two of you rarely touch the same file. Natural split for this build: one person owns the voice/interview pipeline, the other owns the report UI. Shared types/schema go in one small file — agree on its shape *first*, then don't edit it unilaterally.
+**Current status (as of ~7:45 PM): @czhao-mrai has not started.** Claude is building both tracks. The table below is the *handoff map* — when czhao picks up, they take the interview/agent column and the boundary rules go live immediately.
+
+**Conflict avoidance beats conflict resolution — own directories, not features.**
+
+| Owner | Directory | What lives there |
+|---|---|---|
+| **@bojro** | `app/report/`, `components/report/` | Recruiter console — the red/yellow/green bullet view, expandable evidence, transcript panel |
+| **@czhao-mrai** | `app/interview/`, `lib/agent/`, `app/api/` | Voice loop, interview agent, verification tool calls, Claude call sites |
+| **shared — do not edit alone** | `lib/schema.ts`, `lib/model.ts` | Report contract + model tier config |
+
+The rule that prevents every merge conflict tonight: **if a file isn't in your directory, you don't edit it.** Need a change in the other person's area? Ask in Discord — it takes 20 seconds and costs less than a conflict at 9:40.
+
+`lib/schema.ts` is the one file both sides compile against. Changing it breaks the other person's build instantly, so it changes only by agreement.
+
+**Two agents in one repo is the real hazard.** If both of you run an AI coding agent against this repo, they will overwrite each other — agents read a file, think for a minute, and write back a version that silently discards whatever landed in between. Mitigations, in order: stay on separate branches, keep to your own directories, and `git pull --rebase` before every push.
 
 **Before merging to `main`:** pull, rebase, confirm the golden path still runs. That's the whole check.
 
