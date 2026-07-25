@@ -120,7 +120,9 @@ const employmentTool = betaTool({
         {
           method: "POST",
           headers: {
-            Authorization: `Token ${key}`,
+            // Current documented scheme (docs.crustdata.com): Bearer + api version.
+            Authorization: `Bearer ${key}`,
+            "x-api-version": "2025-11-01",
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
