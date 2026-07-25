@@ -127,8 +127,18 @@ const employmentTool = betaTool({
           },
           body: JSON.stringify({
             filters: [
+              // Schema per live API: no FULL_NAME — first/last are separate.
               { filter_type: "CURRENT_COMPANY", type: "in", value: [company] },
-              { filter_type: "FULL_NAME", type: "in", value: [personName] },
+              {
+                filter_type: "FIRST_NAME",
+                type: "in",
+                value: [personName.split(" ")[0]],
+              },
+              {
+                filter_type: "LAST_NAME",
+                type: "in",
+                value: [personName.split(" ").slice(1).join(" ") || personName],
+              },
             ],
             page: 1,
           }),
@@ -139,8 +149,22 @@ const employmentTool = betaTool({
         return `Employment lookup failed (HTTP ${res.status}). Report "${title} at ${company}" as unverified.`;
       }
 
-      const data = await res.json();
-      return `CrustData result for ${personName} / ${company} / ${title}:\n${JSON.stringify(data).slice(0, 3000)}`;
+      const data = (await res.json()) as {
+        profiles?: { name?: string; default_position_title?: string; headline?: string; location?: string }[];
+        total_display_count?: number;
+      };
+      const profiles = data.profiles ?? [];
+      if (profiles.length === 0) {
+        return `CrustData person search: no records matching ${personName} at ${company}. This is common for interns and early-career roles — report the claim as unverified, not as contradicted.`;
+      }
+      const lines = profiles
+        .slice(0, 5)
+        .map(
+          (p) =>
+            `  - ${p.name ?? "?"} — ${p.default_position_title ?? p.headline ?? "?"} (${p.location ?? "?"})`,
+        )
+        .join("\n");
+      return `CrustData person search for ${personName} at ${company} (claimed title: ${title}):\n${data.total_display_count ?? profiles.length} match(es):\n${lines}`;
     } catch (err) {
       return `Employment lookup errored: ${String(err)}. Report as unverified.`;
     }
