@@ -79,6 +79,14 @@ Build against `data/mock-report.ts` — it covers every state the UI has to surv
 
 **Visual: dark, dense, technical.** Near-black, monospace for quotes, colour used only where verdicts carry it. Holds up under projector lighting at 10 PM.
 
+**Design system (built — tokens live in `app/globals.css`):**
+- **Name: Debrief.** Wordmark is the mono uppercase tracking-widest text in the header.
+- Type: Geist Sans for chrome/prose, Geist Mono for quotes, labels, and data.
+- One accent: electric blue `#60a5fa` — selection/focus/interactive only, **never** a verdict.
+- Verdict status colors, CVD-validated (worst adjacent pair ΔE 9.6 under deutan sim): green `#34d399`, yellow `#fcd34d`, red `#f87171`, grey `#9ca3af`. Always paired with a text label; never color alone.
+- Verdict labels in prose: green = "substantiated", yellow = "partially substantiated", red = "did not hold up", unverified = "unverified". The red label is deliberately about the *claim*, not the person.
+- Motion (`motion` package): staggered fade-up on load, crossfade+slide on bullet selection. Keep durations ≤ 400ms so it never blocks a live demo.
+
 Two things to get right, because they're what make it credible rather than a black box:
 - **The quote is the payload.** `evidence[].excerpt` is the candidate's actual words. Give it room and set it in mono — it's what a recruiter expands to audit the verdict.
 - **`unverified` must not read as an accusation.** Grey, not red. It means "no external record", which is the honest answer for most real work.
