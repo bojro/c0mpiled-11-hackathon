@@ -3,122 +3,137 @@ import type { ScreeningReport } from "@/lib/schema";
 /**
  * Realistic fixture for building the recruiter console without a live backend.
  *
- * Deliberately exercises every state the UI has to handle: all four verdicts,
- * all four ownership signals, findings with one evidence item and findings with
- * four, a long excerpt that will need truncation or scrolling, and a bullet the
- * interview never reached.
- *
- * Import this in the report page while developing; swap for the live call later.
+ * Finding `bulletText` values match data/resume.ts verbatim — the console
+ * links findings to document bullets by exact text. Tool-sourced evidence
+ * carries the raw pulled report in `excerpt` so the recruiter can open it.
  */
 export const MOCK_REPORT: ScreeningReport = {
   candidate: {
-    name: "Demo Candidate",
-    roleAppliedFor: "Founding Engineer",
+    name: "Ken Carson",
+    roleAppliedFor: "Backend Engineer (New Grad)",
   },
   overallSummary:
-    "Two of four claims were interrogated in depth. The collaborative editor work is substantiated and appears to be the candidate's own — they described the failure modes and the tradeoff they rejected without prompting. The billing migration is real but their role was narrower than 'led a team of 8' implies; by their own description they coordinated one workstream of a larger effort. The ML infrastructure claim did not hold up: the candidate could describe the architecture but not the implementation, and their account of who made the design decisions changed between answers. The cloud-spend claim was not reached in the interview and has no external record.",
+    "Four of five selected claims were interrogated in depth; one was not reached. The Kubernetes/EKS deployment work is substantiated — the candidate described the rollout failure they debugged and why they chose Redis over an in-process cache without prompting. The NBA win-probability project is substantiated and corroborated by public GitHub activity matching the claimed timeline and test count. The '20% support ticket reduction' reflects real containerization work, but the candidate was candid that the number came from a manager's estimate they never saw measured. The '35% parsing bug reduction' did not hold up: the candidate could not say how it was measured, and their account of who owned the refactor narrowed from 'I refactored the APIs' to 'I worked on two of the endpoints' under follow-up. The JWT/device-communication claim was not reached in the interview.",
   findings: [
     {
       bulletText:
-        "Built and shipped a real-time collaborative editor handling 10k concurrent sessions, cutting p99 sync latency from 800ms to 120ms.",
-      company: "Northwind Systems",
-      title: "Senior Software Engineer",
+        "Containerized backend services with Docker and deployed them on Kubernetes (Amazon EKS), implementing rolling deployments, health checks, and Redis caching to improve scalability, reduce API latency, and increase service reliability.",
+      company: "F500 Company",
+      title: "Software Engineer Intern",
       verdict: "green",
       headline:
-        "Substantiated in depth — named the rejected alternative and the specific failure mode unprompted.",
+        "Substantiated — described the failed rollout they debugged and the caching tradeoff, unprompted.",
       ownershipSignal: "drove",
       evidence: [
         {
           kind: "transcript",
           summary:
-            "Described choosing CRDTs over operational transforms, and why.",
+            "Explained a concrete production failure and how the health checks caught it.",
           excerpt:
-            "Interviewer: What did you consider instead of CRDTs?\n\nCandidate: We looked hard at OT first, honestly because we already had a team that knew it. The thing that killed it for us was that OT needs a central server to order operations, and we had a hard requirement to keep working through network partitions — field techs on bad connections. With OT you're either building a really unpleasant reconciliation layer or you're just down. So we ate the memory cost of CRDTs. It's not free — our tombstone growth was bad enough that I had to write a compaction pass about four months in.",
+            "Interviewer: You mention rolling deployments and health checks — did a rollout ever go wrong?\n\nCandidate: Yeah, actually the second week after we turned it on. One of the services had a readiness probe hitting an endpoint that touched the database, and during a deploy the connection pool ran out, so Kubernetes marked healthy pods unready and the rollout stalled half-finished. I ended up splitting liveness from readiness and pointing readiness at a cheap in-memory check. That's the kind of thing you only learn by getting paged for it.",
         },
         {
           kind: "transcript",
           summary:
-            "Volunteered a specific implementation-level bug when asked what broke.",
+            "Justified Redis over an in-process cache with a real constraint.",
           excerpt:
-            "Interviewer: What broke that you didn't expect?\n\nCandidate: Cursor positions. Everyone talks about text convergence and nobody talks about where the cursor goes. Two people typing near each other and your cursor would jump backwards a character — technically correct per the algorithm, felt completely broken to users. Took me a week to figure out we needed to anchor selections to the CRDT identifiers instead of integer offsets.",
+            "Interviewer: Why Redis and not just caching in the service?\n\nCandidate: Because we had three replicas behind a load balancer, and in-process caches were giving us inconsistent reads depending on which pod you hit. Redis gave us one source of truth and let us set TTLs centrally. The tradeoff is the extra network hop, but the queries we cached were 100-plus milliseconds, so a 1ms hop was nothing.",
         },
         {
-          kind: "consistency",
+          kind: "crustdata",
           summary:
-            "Latency figures stayed consistent across three separate mentions.",
+            "Employer and internship window consistent with external records.",
+          excerpt:
+            "verify_employment(personName: \"Ken Carson\", company: \"F500 Company\", title: \"Software Engineer Intern\")\n\n{\n  \"matches\": 1,\n  \"person\": {\n    \"name\": \"Ken C.\",\n    \"current_employer\": \"F500 Company\",\n    \"title\": \"Software Engineer Intern\",\n    \"employment_start\": \"2025-06\",\n    \"employment_end\": null,\n    \"location\": \"Los Angeles, CA\"\n  },\n  \"source_confidence\": 0.91\n}\n\nAgent note: employer, title, and start date match the résumé. Ongoing role consistent with \"June 2025 – Present\".",
         },
       ],
     },
     {
       bulletText:
-        "Led a team of 8 engineers to migrate the core billing platform off a legacy monolith.",
-      company: "Northwind Systems",
-      title: "Senior Software Engineer",
+        "Designed and deployed containerized microservices using Docker, enabling consistent environments and streamlining access to device controls, reducing support tickets by 20%.",
+      company: "Startup (YC S20)",
+      title: "Software Engineer Intern",
       verdict: "yellow",
       headline:
-        "Migration is real; candidate coordinated one workstream rather than leading the effort.",
+        "Containerization work is real; the 20% figure is a manager's estimate the candidate never saw measured.",
       ownershipSignal: "contributed",
       evidence: [
         {
           kind: "transcript",
           summary:
-            "Under follow-up, described a scope narrower than the bullet implies.",
+            "Candid under follow-up about where the number came from.",
           excerpt:
-            "Interviewer: What was your piece of that?\n\nCandidate: So the whole migration was eight of us, and I owned the invoicing service — that was me and one other engineer. I was running our standup and I was the one talking to finance about the cutover, so in that sense yeah, but I want to be straight with you, there was a staff engineer above the whole thing setting the sequencing. I wasn't deciding what moved when across all eight.",
+            "Interviewer: How was the 20% measured?\n\nCandidate: Honestly — my manager said it in my end-of-internship review, that ticket volume on environment issues was down about twenty percent since the Docker migration. I never saw the dashboard myself. The migration was real and I did most of the Dockerfiles, but I want to be straight that the number is his, not mine.\n\nInterviewer: That's a fair answer.",
         },
         {
           kind: "transcript",
           summary:
-            "Owned the invoicing cutover end to end, including the rollback plan.",
+            "Described the actual containerization work specifically.",
           excerpt:
-            "Candidate: The dual-write period was mine. We ran both systems for six weeks and diffed every invoice — I wrote the reconciliation job. Caught about forty cases where rounding differed on multi-currency line items, which would have been extremely bad to find in production.",
-        },
-        {
-          kind: "crustdata",
-          summary:
-            "Employer, title, and dates match external records for this period.",
+            "Candidate: The mess before was that firmware tooling only ran on one engineer's machine with the right udev rules. I built the images with the device SDKs baked in and a compose file so support could spin up the whole stack locally. That part I'll defend all day — the exact ticket number, less so.",
         },
       ],
     },
     {
       bulletText:
-        "Architected the company's machine learning infrastructure from the ground up, driving a 40% improvement in model training throughput.",
-      company: "Vantage Labs",
-      title: "Software Engineer",
+        "Refactored and optimized backend service APIs in Go-compatible patterns using Node.js/Express, standardizing error handling and response formatting across microservices, reducing client-side parsing bugs by 35%.",
+      company: "Startup (YC S20)",
+      title: "Software Engineer Intern",
       verdict: "red",
       headline:
-        "Could describe the architecture but not the implementation; account of ownership changed mid-interview.",
+        "Scope narrowed from 'refactored the APIs' to 'two endpoints' under follow-up; could not say how 35% was measured or what 'Go-compatible patterns' means.",
       ownershipSignal: "adjacent",
       evidence: [
         {
           kind: "consistency",
           summary:
-            "Story shifted from 'built it' to 'inherited and extended it' across two answers.",
+            "Ownership claim narrowed materially between two answers.",
           excerpt:
-            "Earlier in the interview —\n\nCandidate: I built the training pipeline out from nothing, we had researchers running things on their laptops before that.\n\nLater, when asked about the scheduler —\n\nCandidate: The scheduler was already there when I joined that team, I mostly worked on the data loading side of it.",
+            "Earlier —\n\nCandidate: I refactored our backend APIs to standardize error handling across the microservices.\n\nLater, asked which services —\n\nCandidate: It was mostly the device-status service. I updated two of the endpoints to the new response format; the format itself was already defined by the staff engineer who ran the migration.",
         },
         {
           kind: "transcript",
           summary:
-            "Could not name what was tried before, or where the 40% came from.",
+            "Could not explain the metric or the 'Go-compatible patterns' phrasing.",
           excerpt:
-            "Interviewer: Where did the 40% come from?\n\nCandidate: It was a combination of things, better GPU utilization mostly, and some caching.\n\nInterviewer: Which one moved it most?\n\nCandidate: I'd have to go back and look at the numbers, it's been a while.",
-        },
-        {
-          kind: "github",
-          summary:
-            "No public repositories relate to ML infrastructure. Not evidence against the claim — most professional work is private.",
+            "Interviewer: What does 'Go-compatible patterns' mean in a Node service?\n\nCandidate: It's like... returning errors as values instead of throwing, that kind of style.\n\nInterviewer: And the 35% — where does that come from?\n\nCandidate: I think that was in the migration doc as the goal for the whole effort. I'm not sure what it ended up being.",
         },
       ],
     },
     {
       bulletText:
-        "Reduced cloud spend by $2M annually through infrastructure optimization.",
-      company: "Vantage Labs",
-      title: "Software Engineer",
+        "Built a full-stack NBA win-probability platform (Python, XGBoost) achieving 0.854 AUC on a fully held-out season, using strict train/test splitting across 4,900+ real games to prevent data leakage",
+      company: "Prediction Markets Betting Detector",
+      title: "Personal project",
+      verdict: "green",
+      headline:
+        "Substantiated — explained the leakage trap correctly, and public GitHub activity corroborates the timeline and test count.",
+      ownershipSignal: "drove",
+      evidence: [
+        {
+          kind: "transcript",
+          summary:
+            "Explained why naive splitting leaks and what they did instead.",
+          excerpt:
+            "Interviewer: What leaks if you split randomly?\n\nCandidate: Rolling features. If a team's ten-game rolling average is computed over the whole dataset, a training row from March already contains information about April games sitting in your test set. I split by season instead — trained through 2024-25 and held out the whole 2025-26 season — and computed the rolling features inside each split only. The 0.854 is on the held-out season, and honestly random splitting had looked better, which is exactly the trap.",
+        },
+        {
+          kind: "github",
+          summary:
+            "Public repository matches the claimed stack, timeline, and test count.",
+          excerpt:
+            "lookup_github_activity(username: \"kencarson\")\n\nGitHub profile for kencarson:\n  public repos: 14\n  account created: 2021-03\n\nRecent public repositories:\n  - nba-win-prob (Python, ★12) — XGBoost win-probability model + LangGraph fact-check agent. Last push: July 2026.\n    · commit history: 61 commits between 2026-07-02 and 2026-07-09\n    · test suite: 69 test functions across tests/ (matches résumé claim of \"69 automated tests\")\n    · CI: GitHub Actions workflow with docker build + pytest\n  - storage-marketplace (TypeScript, ★3) — peer-to-peer storage app. Last push: Nov 2025.\n\nAgent note: repository activity is consistent with \"shipped solo in one week\" (61 commits across 8 days) and the claimed test count.",
+        },
+      ],
+    },
+    {
+      bulletText:
+        "Designed backend infrastructure for secure device communication, implementing JSON Web Token authentication, request validation, and rate limiting to support reliable API access at scale.",
+      company: "Startup (YC S20)",
+      title: "Software Engineer Intern",
       verdict: "unverified",
       headline:
-        "Not reached in the interview and no external record exists either way.",
+        "Not reached in the interview; no external record exists either way.",
       ownershipSignal: "unclear",
       evidence: [
         {
@@ -132,35 +147,43 @@ export const MOCK_REPORT: ScreeningReport = {
   transcript: [
     {
       speaker: "agent",
-      text: "Hey — thanks for making the time. I want to dig into a couple of things on your résumé rather than walk through all of it. Let's start with the collaborative editor. What was the hard part?",
+      text: "Hey Ken — thanks for making the time. I want to dig into a few specific things rather than walk the whole résumé. Let's start with the EKS deployment work at your current internship. Did a rollout ever go wrong?",
     },
     {
       speaker: "candidate",
-      text: "Honestly the hard part wasn't the syncing, it was convergence under bad networks. We had customers on field connections dropping in and out constantly.",
+      text: "Yeah, actually the second week after we turned it on. A readiness probe was hitting an endpoint that touched the database, and during a deploy the connection pool ran out, so Kubernetes marked healthy pods unready and the rollout stalled half-finished.",
     },
     {
       speaker: "agent",
-      text: "What did you consider instead of CRDTs?",
+      text: "Why Redis and not just caching in the service?",
     },
     {
       speaker: "candidate",
-      text: "We looked hard at OT first, honestly because we already had a team that knew it. The thing that killed it for us was that OT needs a central server to order operations, and we had a hard requirement to keep working through network partitions.",
+      text: "Because we had three replicas behind a load balancer, and in-process caches were giving us inconsistent reads depending on which pod you hit.",
     },
     {
       speaker: "agent",
-      text: "What broke that you didn't expect?",
+      text: "Let me switch to the startup internship. How was the 20% support-ticket reduction measured?",
     },
     {
       speaker: "candidate",
-      text: "Cursor positions. Everyone talks about text convergence and nobody talks about where the cursor goes.",
+      text: "Honestly — my manager said it in my end-of-internship review. I never saw the dashboard myself. The migration was real and I did most of the Dockerfiles, but the number is his, not mine.",
     },
     {
       speaker: "agent",
-      text: "Let me ask about something else — the billing migration. What was your piece of that?",
+      text: "Fair answer. On the API refactor — which services did you standardize?",
     },
     {
       speaker: "candidate",
-      text: "So the whole migration was eight of us, and I owned the invoicing service — that was me and one other engineer.",
+      text: "It was mostly the device-status service. I updated two of the endpoints to the new response format; the format itself was defined by the staff engineer who ran the migration.",
+    },
+    {
+      speaker: "agent",
+      text: "Last one — the NBA model. What leaks if you split randomly?",
+    },
+    {
+      speaker: "candidate",
+      text: "Rolling features. A training row from March already contains information about April games in your test set. I split by season instead and computed rolling features inside each split only.",
     },
   ],
 };

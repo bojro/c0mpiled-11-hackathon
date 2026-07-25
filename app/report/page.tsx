@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { MOCK_REPORT } from "@/data/mock-report";
+import { RESUME_DOC } from "@/data/resume";
 import { CountsStrip } from "@/components/report/CountsStrip";
-import { BulletList } from "@/components/report/BulletList";
+import { ResumeDoc } from "@/components/report/ResumeDoc";
 import { EvidencePanel } from "@/components/report/EvidencePanel";
 
 /**
@@ -21,13 +22,18 @@ export default function ReportPage() {
     <div className="flex min-h-screen flex-col">
       <CountsStrip report={report} />
 
-      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-8 px-8 py-8">
-        <BulletList
+      <main className="mx-auto grid w-full max-w-7xl flex-1 grid-cols-[minmax(0,11fr)_minmax(0,9fr)] gap-8 px-8 py-8">
+        <ResumeDoc
+          doc={RESUME_DOC}
           findings={report.findings}
           selected={selected}
           onSelect={setSelected}
         />
-        <EvidencePanel finding={report.findings[selected]} index={selected} />
+        <div className="min-w-0">
+          <div className="sticky top-6">
+            <EvidencePanel finding={report.findings[selected]} index={selected} />
+          </div>
+        </div>
       </main>
 
       {/* Summary lives below the fold, after the findings — deliberate. */}
