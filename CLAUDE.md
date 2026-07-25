@@ -1,7 +1,9 @@
 # c0mpiled-11: Startup School Hackathon
 
 **Repo:** https://github.com/bojro/c0mpiled-11-hackathon (public)
-**Team:** @bojro + @czhao-mrai (invited, write access)
+**Team:** @bojro + @czhao-mrai (both have push access)
+
+**New here? Read this file top to bottom — it's the whole brief.** Then: `npm install`, `cp .env.local.example .env.local` and add `ANTHROPIC_API_KEY`, `npm run dev`. Check the ownership table near the bottom before touching any file.
 
 ---
 
@@ -191,15 +193,16 @@ Ask/listen for these — they were not on the event page:
 - No branch protection, no required reviews. Self-merge is fine tonight; speed beats process at this scale.
 - `git pull --rebase` before pushing to keep history linear and avoid merge commit noise.
 
-**Current status (as of ~7:45 PM): @czhao-mrai has not started.** Claude is building both tracks. The table below is the *handoff map* — when czhao picks up, they take the interview/agent column and the boundary rules go live immediately.
-
 **Conflict avoidance beats conflict resolution — own directories, not features.**
 
-| Owner | Directory | What lives there |
-|---|---|---|
-| **@bojro** | `app/report/`, `components/report/` | Recruiter console — the red/yellow/green bullet view, expandable evidence, transcript panel |
-| **@czhao-mrai** | `app/interview/`, `lib/agent/`, `app/api/` | Voice loop, interview agent, verification tool calls, Claude call sites |
-| **shared — do not edit alone** | `lib/schema.ts`, `lib/model.ts` | Report contract + model tier config |
+| Owner | Directory | What lives there | Status |
+|---|---|---|---|
+| **@bojro** | `app/report/`, `components/report/` | Recruiter console — split view, verdict counts, evidence panel. Spec above; build against `data/mock-report.ts`. | not started |
+| **@czhao-mrai** | `app/interview/` | Candidate-facing voice UI — mic capture, continuous speech recognition, speaking the agent's questions aloud | not started, **unclaimed and free to take** |
+| **Claude** | `lib/agent/`, `app/api/` | Interview agent, verification tool loop, report generation, API routes | **in progress — do not edit** |
+| **shared — do not edit alone** | `lib/schema.ts`, `lib/model.ts` | Report contract + model tier config | done |
+
+⚠️ **czhao: take `app/interview/` only.** `lib/agent/` is listed as yours in earlier versions of this file — that's out of date. Claude is actively writing those files right now and concurrent edits will lose work. It'll be handed off once the agent loop is proven against the live API.
 
 The rule that prevents every merge conflict tonight: **if a file isn't in your directory, you don't edit it.** Need a change in the other person's area? Ask in Discord — it takes 20 seconds and costs less than a conflict at 9:40.
 
