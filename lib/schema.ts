@@ -35,6 +35,9 @@ export type Evidence = {
 export type BulletFinding = {
   /** Verbatim from the résumé, so the recruiter can anchor to what they read. */
   bulletText: string;
+  /** Which role this bullet sits under — used to group the console's left column. */
+  company: string;
+  title: string;
   verdict: Verdict;
   /** The one line that explains the verdict at a glance. */
   headline: string;
@@ -94,6 +97,14 @@ export const SCREENING_REPORT_SCHEMA = {
             type: "string",
             description: "The résumé bullet verbatim, unedited.",
           },
+          company: {
+            type: "string",
+            description: "The employer this bullet sits under on the résumé.",
+          },
+          title: {
+            type: "string",
+            description: "The candidate's title for that role.",
+          },
           verdict: {
             type: "string",
             enum: ["green", "yellow", "red", "unverified"],
@@ -138,6 +149,8 @@ export const SCREENING_REPORT_SCHEMA = {
         },
         required: [
           "bulletText",
+          "company",
+          "title",
           "verdict",
           "headline",
           "ownershipSignal",

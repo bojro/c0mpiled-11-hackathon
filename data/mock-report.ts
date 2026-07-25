@@ -21,6 +21,8 @@ export const MOCK_REPORT: ScreeningReport = {
     {
       bulletText:
         "Built and shipped a real-time collaborative editor handling 10k concurrent sessions, cutting p99 sync latency from 800ms to 120ms.",
+      company: "Northwind Systems",
+      title: "Senior Software Engineer",
       verdict: "green",
       headline:
         "Substantiated in depth — named the rejected alternative and the specific failure mode unprompted.",
@@ -50,6 +52,8 @@ export const MOCK_REPORT: ScreeningReport = {
     {
       bulletText:
         "Led a team of 8 engineers to migrate the core billing platform off a legacy monolith.",
+      company: "Northwind Systems",
+      title: "Senior Software Engineer",
       verdict: "yellow",
       headline:
         "Migration is real; candidate coordinated one workstream rather than leading the effort.",
@@ -79,6 +83,8 @@ export const MOCK_REPORT: ScreeningReport = {
     {
       bulletText:
         "Architected the company's machine learning infrastructure from the ground up, driving a 40% improvement in model training throughput.",
+      company: "Vantage Labs",
+      title: "Software Engineer",
       verdict: "red",
       headline:
         "Could describe the architecture but not the implementation; account of ownership changed mid-interview.",
@@ -108,6 +114,8 @@ export const MOCK_REPORT: ScreeningReport = {
     {
       bulletText:
         "Reduced cloud spend by $2M annually through infrastructure optimization.",
+      company: "Vantage Labs",
+      title: "Software Engineer",
       verdict: "unverified",
       headline:
         "Not reached in the interview and no external record exists either way.",
