@@ -2,7 +2,6 @@
 
 import type { BulletFinding, Verdict } from "@/lib/schema";
 import type { ResumeDocument } from "@/data/resume";
-import { VERDICT } from "./verdict";
 
 /**
  * The résumé rendered as the paper document it is — styled after Jake's
@@ -21,14 +20,6 @@ const HIGHLIGHT: Record<Verdict, { fill: string; hover: string }> = {
   yellow: { fill: "rgba(252, 211, 77, 0.38)", hover: "rgba(252, 211, 77, 0.55)" },
   red: { fill: "rgba(248, 113, 113, 0.30)", hover: "rgba(248, 113, 113, 0.45)" },
   unverified: { fill: "rgba(156, 163, 175, 0.30)", hover: "rgba(156, 163, 175, 0.45)" },
-};
-
-/** Pen-ink shades for the margin note under a highlighted bullet. */
-const TAG_INK: Record<Verdict, string> = {
-  green: "#047857",
-  yellow: "#92400e",
-  red: "#b91c1c",
-  unverified: "#4b5563",
 };
 
 export function ResumeDoc({
@@ -195,7 +186,6 @@ function HighlightedBullet({
   onClick: () => void;
 }) {
   const h = HIGHLIGHT[finding.verdict];
-  const v = VERDICT[finding.verdict];
 
   return (
     <div className="min-w-0">
@@ -226,15 +216,6 @@ function HighlightedBullet({
           {text}
         </span>
       </button>
-
-      {/* Margin note: verdict label in pen ink */}
-      <p
-        className="mt-[1px] font-mono text-[9px] tracking-wide uppercase"
-        style={{ color: TAG_INK[finding.verdict] }}
-      >
-        {v.label}
-        {isSelected ? " — showing evidence →" : ""}
-      </p>
     </div>
   );
 }
