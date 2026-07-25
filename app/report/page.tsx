@@ -18,7 +18,10 @@ import { TranscriptSection } from "@/components/report/TranscriptSection";
  */
 export default function ReportPage() {
   const report = MOCK_REPORT;
-  const total = report.findings.length;
+  // On the paper, absence of a highlight already means "not examined" —
+  // an explicit unverified verdict never earns a stroke.
+  const findings = report.findings.filter((f) => f.verdict !== "unverified");
+  const total = findings.length;
   const [selected, setSelected] = useState(0);
 
   const step = useCallback(
@@ -42,14 +45,14 @@ export default function ReportPage() {
       <main className="mx-auto grid w-full max-w-7xl flex-1 grid-cols-[minmax(0,11fr)_minmax(0,9fr)] gap-8 px-8 py-8">
         <ResumeDoc
           doc={RESUME_DOC}
-          findings={report.findings}
+          findings={findings}
           selected={selected}
           onSelect={setSelected}
         />
         <div className="min-w-0">
           <div className="sticky top-6">
             <EvidencePanel
-              finding={report.findings[selected]}
+              finding={findings[selected]}
               index={selected}
               total={total}
               onStep={step}

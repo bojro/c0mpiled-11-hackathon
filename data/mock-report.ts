@@ -13,7 +13,7 @@ export const MOCK_REPORT: ScreeningReport = {
     roleAppliedFor: "Backend Engineer (New Grad)",
   },
   overallSummary:
-    "Four of five selected claims were interrogated in depth; one was not reached. The Kubernetes/EKS deployment work is substantiated — the candidate described the rollout failure they debugged and why they chose Redis over an in-process cache without prompting. The NBA win-probability project is substantiated and corroborated by public GitHub activity matching the claimed timeline and test count. The '20% support ticket reduction' reflects real containerization work, but the candidate was candid that the number came from a manager's estimate they never saw measured. The '35% parsing bug reduction' did not hold up: the candidate could not say how it was measured, and their account of who owned the refactor narrowed from 'I refactored the APIs' to 'I worked on two of the endpoints' under follow-up. The JWT/device-communication claim was not reached in the interview.",
+    "Four claims were interrogated in depth; bullets without a mark were not examined. The Kubernetes/EKS deployment work is substantiated — the candidate described the rollout failure they debugged and why they chose Redis over an in-process cache without prompting. The NBA win-probability project is substantiated and corroborated by public GitHub activity matching the claimed timeline and test count. The '20% support ticket reduction' reflects real containerization work, but the candidate was candid that the number came from a manager's estimate they never saw measured. The '35% parsing bug reduction' did not hold up: the candidate could not say how it was measured, and their account of who owned the refactor narrowed from 'I refactored the APIs' to 'I worked on two of the endpoints' under follow-up. ",
   findings: [
     {
       bulletText:
@@ -123,23 +123,6 @@ export const MOCK_REPORT: ScreeningReport = {
             "Public repository matches the claimed stack, timeline, and test count.",
           excerpt:
             "lookup_github_activity(username: \"kencarson\")\n\nGitHub profile for kencarson:\n  public repos: 14\n  account created: 2021-03\n\nRecent public repositories:\n  - nba-win-prob (Python, ★12) — XGBoost win-probability model + LangGraph fact-check agent. Last push: July 2026.\n    · commit history: 61 commits between 2026-07-02 and 2026-07-09\n    · test suite: 69 test functions across tests/ (matches résumé claim of \"69 automated tests\")\n    · CI: GitHub Actions workflow with docker build + pytest\n  - storage-marketplace (TypeScript, ★3) — peer-to-peer storage app. Last push: Nov 2025.\n\nAgent note: repository activity is consistent with \"shipped solo in one week\" (61 commits across 8 days) and the claimed test count.",
-        },
-      ],
-    },
-    {
-      bulletText:
-        "Designed backend infrastructure for secure device communication, implementing JSON Web Token authentication, request validation, and rate limiting to support reliable API access at scale.",
-      company: "Startup (YC S20)",
-      title: "Software Engineer Intern",
-      verdict: "unverified",
-      headline:
-        "Not reached in the interview; no external record exists either way.",
-      ownershipSignal: "unclear",
-      evidence: [
-        {
-          kind: "transcript",
-          summary:
-            "The interview ended before this claim was interrogated. No signal in either direction.",
         },
       ],
     },

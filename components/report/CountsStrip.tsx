@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import type { ScreeningReport, Verdict } from "@/lib/schema";
+import { RESUME_DOC } from "@/data/resume";
 import { VERDICT, VERDICT_ORDER } from "./verdict";
 
 /**
@@ -16,6 +17,9 @@ export function CountsStrip({ report }: { report: ScreeningReport }) {
     },
     { green: 0, yellow: 0, red: 0, unverified: 0 },
   );
+  const totalBullets = RESUME_DOC.sections
+    .flatMap((s) => s.entries)
+    .reduce((n, e) => n + e.bullets.length, 0);
 
   return (
     <header className="flex items-center justify-between border-b border-line px-8 py-4">
@@ -31,7 +35,11 @@ export function CountsStrip({ report }: { report: ScreeningReport }) {
       </div>
 
       <div className="flex items-center gap-5">
-        {VERDICT_ORDER.map((v, i) => (
+        <span className="font-mono text-xs text-ink-muted">
+          {report.findings.length} of {totalBullets} claims examined
+        </span>
+        <span aria-hidden className="h-4 w-px bg-line-strong" />
+        {VERDICT_ORDER.filter((v) => counts[v] > 0).map((v, i) => (
           <motion.div
             key={v}
             initial={{ opacity: 0, y: -6 }}

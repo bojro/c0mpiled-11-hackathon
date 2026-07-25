@@ -50,7 +50,7 @@ ${transcriptText}
 
 ${externalEvidence || "(no external checks completed)"}
 
-Write the screening report. Include one finding per résumé bullet — including bullets the interview never reached, which should be marked unverified with that stated plainly as the reason.`,
+Write the screening report. Produce findings ONLY for claims that were actually examined — interrogated in the interview, or checked against external records. Bullets the interview never reached get no finding at all: on the report, an unmarked bullet already communicates "not examined." Reserve the unverified verdict for claims that WERE checked and where no record exists either way.`,
       },
     ],
   });
