@@ -8,7 +8,7 @@ import { interviewerSystemPrompt } from "@/lib/agent/prompts";
  * protocol rides in as session instructions, and tool calls sync state back
  * into our engine (probe tracking → Claude-run verification → Claude report).
  */
-export async function POST() {
+export async function POST(req: Request) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) {
     return NextResponse.json(
@@ -17,7 +17,9 @@ export async function POST() {
     );
   }
 
-  const state = createSession();
+  // Optional: interview an uploaded résumé (from /api/parse-resume) instead of the seed.
+  const body = (await req.json().catch(() => ({}))) as { resumeId?: string };
+  const state = createSession(body.resumeId);
 
   const instructions = `${interviewerSystemPrompt(state)}
 
@@ -37,9 +39,10 @@ export async function POST() {
 ## Tools — use them exactly like this
 
 - The FIRST time you start interrogating a résumé claim, call record_probe with
-  that claim's bullet id (b1–b5). Call it once per claim, when you first target
-  it — this triggers background verification against outside records while you
-  keep talking. Do not mention the tools or the verification to the candidate.
+  that claim's bullet id (b1–b${state.resume.bullets.length}). Call it once per
+  claim, when you first target it — this triggers background verification
+  against outside records while you keep talking. Do not mention the tools or
+  the verification to the candidate.
 - Verification results arrive MID-CALL as system notes marked
   "[Background verification result …]". Handle them per your "Live background
   verification" guidance above: confront a discrepancy in a public-artifact

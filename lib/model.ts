@@ -11,7 +11,7 @@
  * Neither accepts temperature / top_p / top_k.
  */
 
-export type Task = "interview" | "verify" | "report";
+export type Task = "interview" | "verify" | "report" | "parse";
 
 const TIER = process.env.MODEL_TIER === "demo" ? "demo" : "dev";
 
@@ -21,12 +21,15 @@ const DEMO_EFFORT: Record<Task, "low" | "medium" | "high"> = {
   interview: "low",
   verify: "medium",
   report: "high",
+  // A candidate is waiting on the apply screen; medium is plenty for extraction.
+  parse: "medium",
 };
 
 const MAX_TOKENS: Record<Task, number> = {
   interview: 1024,
   verify: 4096,
   report: 16000,
+  parse: 8192,
 };
 
 /**

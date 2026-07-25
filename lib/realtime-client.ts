@@ -50,10 +50,16 @@ type RtEvent = {
 
 export async function startRealtimeInterview(
   cb: RealtimeCallbacks,
+  opts?: { resumeId?: string },
 ): Promise<RealtimeHandle> {
-  // 1. Server mints the ephemeral secret bound to a fresh interview session.
-  dbg("lifecycle", { step: "minting" });
-  const mint = await fetch("/api/realtime/session", { method: "POST" });
+  // 1. Server mints the ephemeral secret bound to a fresh interview session —
+  // against an uploaded résumé when the apply flow handed us one.
+  dbg("lifecycle", { step: "minting", resumeId: opts?.resumeId });
+  const mint = await fetch("/api/realtime/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resumeId: opts?.resumeId }),
+  });
   if (!mint.ok) {
     const body = (await mint.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `Could not start realtime session (${mint.status})`);

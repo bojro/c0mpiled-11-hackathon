@@ -48,6 +48,14 @@ export default function InterviewPage() {
   const [fallback] = useState(
     () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("fallback"),
   );
+  // ?resume=<id> — set by the apply flow after a real PDF parse. The interview
+  // then runs against the uploaded résumé; without it, the seeded demo résumé.
+  const [resumeId] = useState(
+    () =>
+      (typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("resume")) ||
+      undefined,
+  );
   const realtime = !auto && !fallback;
   const rtRef = useRef<RealtimeHandle | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -102,6 +110,8 @@ export default function InterviewPage() {
           body: JSON.stringify({
             sessionId: sessionRef.current ?? undefined,
             said,
+            // Only meaningful on the session-creating first call.
+            resumeId,
           }),
         });
         if (!res.ok) {
@@ -184,7 +194,7 @@ export default function InterviewPage() {
           setError(m);
           setPhase("error");
         },
-      });
+      }, { resumeId });
       sessionRef.current = rtRef.current.sessionId;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Realtime connection failed.");

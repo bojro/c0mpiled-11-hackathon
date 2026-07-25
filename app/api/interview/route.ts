@@ -17,6 +17,8 @@ export async function POST(req: Request) {
     const body = (await req.json().catch(() => ({}))) as {
       sessionId?: string;
       said?: string;
+      /** From /api/parse-resume — interview an uploaded résumé instead of the seed. */
+      resumeId?: string;
     };
 
     let state = body.sessionId ? getSession(body.sessionId) : undefined;
@@ -27,7 +29,7 @@ export async function POST(req: Request) {
           { status: 404 },
         );
       }
-      state = createSession();
+      state = createSession(body.resumeId);
     }
 
     // Fold the candidate's utterance in before asking for the next question,

@@ -1,5 +1,5 @@
 import { DEMO_JOB, DEMO_RESUME } from "@/data/seed";
-import type { InterviewState } from "./types";
+import type { InterviewState, Resume } from "./types";
 
 /**
  * In-memory session store. Deliberately not a database — this is a demo, and a
@@ -10,11 +10,31 @@ import type { InterviewState } from "./types";
  */
 const sessions = new Map<string, InterviewState>();
 
-export function createSession(): InterviewState {
+/**
+ * Parsed résumés waiting for their interview, keyed by the id /api/parse-resume
+ * hands the apply page. Same in-memory philosophy as sessions. Kept (not
+ * consumed) on read so a refreshed interview page can start over.
+ */
+const parsedResumes = new Map<string, Resume>();
+
+export function stashResume(resume: Resume): string {
+  const resumeId = `r_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  parsedResumes.set(resumeId, resume);
+  return resumeId;
+}
+
+export function getParsedResume(resumeId: string): Resume | undefined {
+  return parsedResumes.get(resumeId);
+}
+
+/** Start a session — against an uploaded résumé when a resumeId is supplied
+ *  (and found), else the seeded demo résumé, exactly as before. */
+export function createSession(resumeId?: string): InterviewState {
   const sessionId = `s_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  const resume = (resumeId && parsedResumes.get(resumeId)) || DEMO_RESUME;
   const state: InterviewState = {
     sessionId,
-    resume: DEMO_RESUME,
+    resume,
     job: DEMO_JOB,
     transcript: [],
     probes: [],
