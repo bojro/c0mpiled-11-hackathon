@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "hexclave": {
+      "type": "http",
+      "url": "https://mcp.hexclave.com/mcp"
+    }
+  }
+}
