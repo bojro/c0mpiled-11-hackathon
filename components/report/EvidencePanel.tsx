@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { BulletFinding, Evidence } from "@/lib/schema";
+import { clipFor } from "@/data/audio-map";
+import { AudioClip } from "./AudioClip";
 import { EVIDENCE_KIND, VERDICT } from "./verdict";
 
 /**
@@ -15,9 +17,13 @@ import { EVIDENCE_KIND, VERDICT } from "./verdict";
 export function EvidencePanel({
   finding,
   index,
+  total,
+  onStep,
 }: {
   finding: BulletFinding;
   index: number;
+  total: number;
+  onStep: (dir: 1 | -1) => void;
 }) {
   const v = VERDICT[finding.verdict];
 
@@ -32,6 +38,20 @@ export function EvidencePanel({
         aria-label="Evidence"
         className="flex flex-col gap-5"
       >
+        {/* Annotation stepper */}
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[11px] tracking-widest text-ink-muted uppercase">
+            Annotation {index + 1} of {total}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <StepButton dir={-1} onStep={onStep} label="Previous annotation" />
+            <StepButton dir={1} onStep={onStep} label="Next annotation" />
+            <span className="ml-2 hidden font-mono text-[10px] text-ink-muted lg:inline">
+              ← → keys
+            </span>
+          </div>
+        </div>
+
         {/* Verdict headline */}
         <div
           className="rounded-lg border p-5"
@@ -54,7 +74,7 @@ export function EvidencePanel({
         {/* Evidence items */}
         <div className="flex flex-col gap-4">
           {finding.evidence.map((e, i) => (
-            <EvidenceCard key={i} evidence={e} order={i} />
+            <EvidenceCard key={i} evidence={e} order={i} findingIndex={index} />
           ))}
         </div>
       </motion.section>
@@ -62,13 +82,22 @@ export function EvidencePanel({
   );
 }
 
-function EvidenceCard({ evidence, order }: { evidence: Evidence; order: number }) {
+function EvidenceCard({
+  evidence,
+  order,
+  findingIndex,
+}: {
+  evidence: Evidence;
+  order: number;
+  findingIndex: number;
+}) {
   // Tool reports start collapsed — the summary is the finding, the raw pull
   // is the audit trail. Interview exchanges start open — the quote IS the
   // evidence.
   const isToolReport = evidence.kind === "crustdata" || evidence.kind === "github";
   const [open, setOpen] = useState(!isToolReport);
   const hasExcerpt = Boolean(evidence.excerpt);
+  const clip = evidence.kind === "transcript" ? clipFor(findingIndex, order) : undefined;
 
   return (
     <motion.div
@@ -109,6 +138,11 @@ function EvidenceCard({ evidence, order }: { evidence: Evidence; order: number }
             transition={{ duration: 0.22, ease: "easeOut" }}
             className="overflow-hidden"
           >
+            {clip && (
+              <div className="mx-5 mb-3">
+                <AudioClip src={clip} label="interview clip" />
+              </div>
+            )}
             <blockquote
               className={`mx-5 mb-5 border-l-2 pl-4 ${
                 isToolReport ? "border-accent/40" : "border-line-strong"
@@ -122,5 +156,28 @@ function EvidenceCard({ evidence, order }: { evidence: Evidence; order: number }
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+
+function StepButton({
+  dir,
+  onStep,
+  label,
+}: {
+  dir: 1 | -1;
+  onStep: (dir: 1 | -1) => void;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={() => onStep(dir)}
+      aria-label={label}
+      className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-ink-secondary transition-colors hover:border-accent/60 hover:text-accent"
+    >
+      <span aria-hidden className="font-mono text-[13px] leading-none">
+        {dir === 1 ? "\u2192" : "\u2190"}
+      </span>
+    </button>
   );
 }

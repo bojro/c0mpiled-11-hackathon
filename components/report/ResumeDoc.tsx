@@ -1,5 +1,6 @@
 "use client";
 
+import { useLayoutEffect, useRef, useState } from "react";
 import type { BulletFinding, Verdict } from "@/lib/schema";
 import type { ResumeDocument } from "@/data/resume";
 
@@ -59,11 +60,42 @@ export function ResumeDoc({
       </ul>
     );
 
+  // Fit-to-page: the sheet keeps US-Letter proportions; if the content runs
+  // longer than the page, scale it down like a PDF viewer's fit-to-page.
+  const pageRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const fit = () => {
+      const page = pageRef.current;
+      const content = contentRef.current;
+      if (!page || !content) return;
+      const pageH = page.clientHeight;
+      const contentH = content.scrollHeight;
+      // Quantize + dead-band so the width-compensation feedback loop settles
+      // instead of oscillating with ResizeObserver.
+      const next = Math.round((contentH > pageH ? pageH / contentH : 1) * 100) / 100;
+      setScale((prev) => (Math.abs(prev - next) < 0.02 ? prev : next));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    if (pageRef.current) ro.observe(pageRef.current);
+    if (contentRef.current) ro.observe(contentRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div
-      className="rounded-[2px] bg-[#fdfdfb] px-11 py-8 text-[#111] shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_18px_50px_rgba(0,0,0,0.55)]"
+      ref={pageRef}
+      className="aspect-[17/22] overflow-hidden rounded-[2px] bg-[#fdfdfb] text-[#111] shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_18px_50px_rgba(0,0,0,0.55)]"
       style={{ fontFamily: SERIF }}
     >
+      <div
+        ref={contentRef}
+        className="origin-top-left px-11 py-8"
+        style={{ transform: `scale(${scale})`, width: scale < 1 ? `${100 / scale}%` : undefined }}
+      >
       {/* Name + pipe-separated contact line, centered — Jake's header */}
       <div className="text-center">
         <h1 className="text-[26px] font-bold tracking-[0.01em]">{doc.name}</h1>
@@ -170,6 +202,7 @@ export function ResumeDoc({
           ))}
         </div>
       </section>
+      </div>
     </div>
   );
 }
