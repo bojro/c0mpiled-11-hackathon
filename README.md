@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Debrief
 
-## Getting Started
+**Résumés stopped being signal the day everyone could generate one.** Debrief moves
+screening from *what you wrote* to *what you can defend out loud* — an AI agent
+interviews every applicant the way an Amazon Bar Raiser would, verifies claims
+against employment records and GitHub while they talk, and hands the recruiter a
+marked-up résumé where every highlight is backed by audio.
 
-First, run the development server:
+Built solo-ish in ~3 hours at **c0mpiled-11** (Startup School Hackathon, SF) for
+the YC RFS *SaaS Challengers* track: an AI-native replacement for the
+Workday-shaped résumé filter.
+
+## What it does
+
+- **Candidates apply with a résumé, not forms** (`/apply`), track a Workday-style
+  pipeline (`/status`), and get invited to a ~10-minute **voice conversation**
+  (`/interview`) — browser-native STT/TTS, no vendors, real follow-ups chosen
+  live by the agent.
+- **The agent interrogates like a Bar Raiser**: picks 2–3 claims worth attacking,
+  probes each 3–5 levels deep, separates "I" from "we", pushes on rejected
+  alternatives, and checks the story for drift between answer 2 and answer 5.
+- **It investigates while you talk**: a tool-running agent loop pulls GitHub
+  activity and employment records (CrustData) for the claims under discussion,
+  concurrent with the interview.
+- **Recruiters get the résumé itself as the report** (`/report`): the actual
+  one-page document with highlighter strokes — green (substantiated), yellow
+  (narrower than phrased), red (didn't hold up). Every stroke opens to the
+  exact exchange, playable audio, and the raw record pulls. Unmarked bullets
+  simply weren't examined — absence of evidence is never held against anyone.
+- **It informs; a human decides.** Deliberately no auto-reject: the autonomy is
+  in the investigation, not the judgment.
+
+## Run it
 
 ```bash
+npm install
+cp .env.local.example .env.local   # add ANTHROPIC_API_KEY (GitHub/CrustData keys optional)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- `/` — HR pipeline (mock candidates; Ken's row opens the real report view)
+- `/report` — the marked-up résumé console (seeded demo data + synthesized audio)
+- `/apply` → `/status` → `/interview` — the candidate journey; the interview loop
+  is live against the Claude API
+- `MODEL_TIER=demo` switches from Haiku (dev) to Opus 5 (demo)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How it's built
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Next.js 16 · React 19 · Tailwind 4 · `motion` · Claude Opus 5 / Haiku 4.5.
+Three call shapes: low-effort conversational turns, a tool-runner agentic loop
+for verification (GitHub + CrustData as tools, honest degradation to
+"unverified"), and high-effort structured output for the schema-guaranteed
+report. Voice is browser-native Web Speech — nothing that can die on venue wifi.
+Verdict colors are CVD-validated against the dark surface (worst adjacent pair
+ΔE 9.6 under deutan simulation) and never appear without a text label.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*Demo résumé is an anonymized real résumé used with permission; demo audio is
+synthesized from the on-screen transcript.*
