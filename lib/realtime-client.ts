@@ -88,6 +88,52 @@ export async function startRealtimeInterview(
   const dc = pc.createDataChannel("oai-events");
   const seenDeltaTypes = new Set<string>();
 
+  // 2b. Evidence poller. Background verification lands server-side while the
+  // model is talking; the session instructions were baked at mint, so new
+  // evidence has to be injected into the live conversation for the
+  // interviewer to confront with it (see the "Live background verification"
+  // guidance in prompts.ts). Injected as a system message item — added to
+  // context without forcing a response, so it never interrupts a turn; the
+  // model folds it in when the related claim next comes up.
+  let evidenceCursor = 0;
+  const evidenceTimer = setInterval(async () => {
+    if (dc.readyState !== "open") return;
+    try {
+      const res = await fetch(
+        `/api/session-sync?sessionId=${encodeURIComponent(sessionId)}&after=${evidenceCursor}`,
+      );
+      if (!res.ok) return; // session gone (dev hot-reload) — keep quiet
+      const data = (await res.json()) as {
+        evidence: { bulletId: string; kind: string; excerpt?: string }[];
+        total: number;
+      };
+      for (const e of data.evidence) {
+        // Only the entries with excerpts carry substance (the verifier's
+        // written findings); bare "checked X" markers would just add noise.
+        if (!e.excerpt) continue;
+        dbg("evidence-inject", { bulletId: e.bulletId, kind: e.kind });
+        dc.send(
+          JSON.stringify({
+            type: "conversation.item.create",
+            item: {
+              type: "message",
+              role: "system",
+              content: [
+                {
+                  type: "input_text",
+                  text: `[Background verification result for résumé claim ${e.bulletId}]\n${e.excerpt}\n\nFold this in per your "Live background verification" guidance: confront a discrepancy in a public-artifact claim directly and neutrally when that claim is in play; say nothing about corroboration or absent records for private work; never mention checks or tools.`,
+                },
+              ],
+            },
+          }),
+        );
+      }
+      evidenceCursor = data.total;
+    } catch {
+      /* transient network error — next tick retries */
+    }
+  }, 4000);
+
   const HANDLED = new Set([
     "input_audio_buffer.speech_started",
     "input_audio_buffer.speech_stopped",
@@ -226,6 +272,7 @@ export async function startRealtimeInterview(
   return {
     sessionId,
     stop: () => {
+      clearInterval(evidenceTimer);
       for (const track of mic.getTracks()) track.stop();
       dc.close();
       pc.close();

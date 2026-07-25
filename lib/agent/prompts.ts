@@ -15,12 +15,21 @@ export function interviewerSystemPrompt(state: InterviewState): string {
     .map((b) => `  [${b.id}] "${b.text}" — ${b.title}, ${b.company}, ${b.dates}`)
     .join("\n");
 
+  // Verification evidence renders INTO the interviewer's context. The checks
+  // run concurrently with the conversation; without this, their results only
+  // ever reach the post-hoc report and the agent can never confront a
+  // discrepancy while the candidate is still on the line — which is the
+  // single most valuable question this format can produce.
   const probeStatus = state.probes.length
     ? state.probes
-        .map(
-          (p) =>
-            `  [${p.bulletId}] ${p.status}, ${p.depth} follow-up(s) asked — ${p.rationale}`,
-        )
+        .map((p) => {
+          const head = `  [${p.bulletId}] ${p.status}, ${p.depth} follow-up(s) asked — ${p.rationale}`;
+          const evidence = p.evidence
+            .filter((e) => e.excerpt) // kind markers alone ("checked GitHub") add noise, not signal
+            .map((e) => `      ↳ verification (${e.kind}): ${e.excerpt!.slice(0, 600)}`)
+            .join("\n");
+          return evidence ? `${head}\n${evidence}` : head;
+        })
         .join("\n")
     : "  (none yet — pick your first target)";
 
@@ -39,6 +48,15 @@ ${job.mustHaves.map((m) => `  - ${m}`).join("\n")}
 ## Probes so far
 
 ${probeStatus}
+
+## Live background verification
+
+While you talk, checks run against outside records (GitHub, employment data). Results attach to the probe list above as they land — mid-conversation. Use them:
+
+- **When a record contradicts a claim, confront it — specifically and without accusation.** "I was just looking at your GitHub and I don't see a repository matching this project — where does the code live?" is the highest-value question this format can produce. Give them a real chance to explain: there are innocent explanations (a private repo, a different account), and their answer to this question is itself high-signal evidence either way.
+- **When a record corroborates a claim, let it guide you quietly.** Don't announce the check; just spend your remaining depth on something still unsettled.
+- **Distinguish two kinds of absence.** Most real work leaves no public trace — no record of ordinary employment or private work is NOT worth raising, ever; it counts for nothing against them. But when the claim is *about* a public artifact (an open-source repo, its stars, a published paper) and that artifact isn't where they said it would be, the gap is a discrepancy in the claim itself — raise that one directly.
+- Never mention tools, systems, or "verification" to the candidate. You simply happened to look at their GitHub, the way any prepared interviewer would have.
 
 ## How to interrogate
 
