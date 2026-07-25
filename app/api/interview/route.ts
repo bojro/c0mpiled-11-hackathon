@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { applyTurn, nextQuestion } from "@/lib/agent/interviewer";
 import { kickOffVerification } from "@/lib/agent/orchestrate";
-import { createSession, getSession, saveSession } from "@/lib/session";
+import { createSession, getParsedResume, getSession, saveSession } from "@/lib/session";
 
 /**
  * One turn of the interview.
@@ -26,6 +26,13 @@ export async function POST(req: Request) {
       if (body.sessionId) {
         return NextResponse.json(
           { error: "Session not found — start a new one." },
+          { status: 404 },
+        );
+      }
+      if (body.resumeId && !getParsedResume(body.resumeId)) {
+        // Never fall back to the demo résumé for a real applicant.
+        return NextResponse.json(
+          { error: "Your uploaded résumé is no longer available — please apply again." },
           { status: 404 },
         );
       }

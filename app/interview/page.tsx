@@ -59,6 +59,12 @@ export default function InterviewPage() {
   const realtime = !auto && !fallback;
   const rtRef = useRef<RealtimeHandle | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
+  // Whose résumé this conversation is about. Without an uploaded résumé the
+  // seeded demo candidate runs — shown explicitly so a real applicant can
+  // never mistake a demo session for their own.
+  const [candidateName, setCandidateName] = useState<string | null>(
+    resumeId ? null : "Ken Carson",
+  );
   const [lines, setLines] = useState<Line[]>([]);
   const [interim, setInterim] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -122,8 +128,10 @@ export default function InterviewPage() {
           sessionId: string;
           say: string;
           endInterview: boolean;
+          resume?: { candidateName?: string };
         };
         sessionRef.current = data.sessionId;
+        if (data.resume?.candidateName) setCandidateName(data.resume.candidateName);
         pushLine({ speaker: "agent", text: data.say });
         setPhase("speaking");
         say(data.say, () => {
@@ -196,6 +204,7 @@ export default function InterviewPage() {
         },
       }, { resumeId });
       sessionRef.current = rtRef.current.sessionId;
+      if (rtRef.current.candidateName) setCandidateName(rtRef.current.candidateName);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Realtime connection failed.");
       setPhase("error");
@@ -288,7 +297,9 @@ export default function InterviewPage() {
           Debrief
         </span>
         <span className="font-mono text-xs text-ink-muted">
-          Ken Carson · your conversation
+          {candidateName ?? "your conversation"}
+          {!resumeId && " · demo résumé"}
+          {resumeId && candidateName && " · your conversation"}
         </span>
       </header>
 
@@ -338,6 +349,15 @@ export default function InterviewPage() {
                 speech-to-speech · gpt-realtime carries the voice, claude runs the investigation
               </p>
             )}
+            {!auto && !resumeId && (
+              <p className="mt-2 font-mono text-[10.5px] text-ink-muted">
+                no application attached — this interviews the demo résumé (Ken
+                Carson).{" "}
+                <a href="/apply" className="text-accent hover:underline">
+                  apply with yours
+                </a>
+              </p>
+            )}
           </motion.div>
         )}
 
@@ -350,6 +370,14 @@ export default function InterviewPage() {
             >
               reload and retry
             </button>
+            {resumeId && (
+              <a
+                href="/apply"
+                className="mt-2 block font-mono text-xs text-accent hover:underline"
+              >
+                apply again with your résumé
+              </a>
+            )}
           </div>
         )}
 
@@ -385,7 +413,11 @@ export default function InterviewPage() {
                       l.speaker === "agent" ? "text-accent" : "text-v-green"
                     }`}
                   >
-                    {l.speaker === "agent" ? "Debrief" : auto ? "Ken" : "You"}
+                    {l.speaker === "agent"
+                      ? "Debrief"
+                      : auto
+                        ? (candidateName?.split(" ")[0] ?? "AI")
+                        : "You"}
                   </span>
                   <p className="text-[13.5px] leading-relaxed text-ink">{l.text}</p>
                 </motion.div>

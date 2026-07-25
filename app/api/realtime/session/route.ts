@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSession } from "@/lib/session";
+import { createSession, getParsedResume } from "@/lib/session";
 import { interviewerSystemPrompt } from "@/lib/agent/prompts";
 
 /**
@@ -19,6 +19,13 @@ export async function POST(req: Request) {
 
   // Optional: interview an uploaded résumé (from /api/parse-resume) instead of the seed.
   const body = (await req.json().catch(() => ({}))) as { resumeId?: string };
+  if (body.resumeId && !getParsedResume(body.resumeId)) {
+    // Never fall back to the demo résumé for a real applicant.
+    return NextResponse.json(
+      { error: "Your uploaded résumé is no longer available — please apply again." },
+      { status: 404 },
+    );
+  }
   const state = createSession(body.resumeId);
 
   const instructions = `${interviewerSystemPrompt(state)}
@@ -35,6 +42,11 @@ export async function POST(req: Request) {
   clearly not addressed to you, or someone else's voice, do not treat it as an
   answer — say nothing about it and simply continue waiting, or gently re-ask
   your question. Only engage with substantive answers directed at you.
+- This interview is in English ONLY. You always speak English, no matter what.
+  If an utterance arrives that appears to be in another language, it is
+  background noise that was mis-transcribed — it is NOT the candidate. Do not
+  respond to it, do not translate it, do not switch languages; keep waiting
+  for the candidate's real answer, or re-ask your question in English.
 
 ## Tools — use them exactly like this
 
@@ -66,11 +78,29 @@ export async function POST(req: Request) {
         instructions,
         audio: {
           input: {
-            // gpt-4o-transcribe hallucinates far less than whisper on faint audio
-            transcription: { model: "gpt-4o-transcribe" },
-            // semantic VAD waits for complete thoughts — right fit for interview
-            // answers, and much less twitchy against speaker echo
-            turn_detection: { type: "semantic_vad", eagerness: "low" },
+            // gpt-4o-transcribe hallucinates far less than whisper on faint
+            // audio. language pins the decode to English and the prompt biases
+            // it further — but neither is a hard guarantee (Korean/Spanish
+            // still slipped through in .debug/realtime.jsonl), so the client
+            // additionally drops and deletes non-English transcripts.
+            transcription: {
+              model: "gpt-4o-transcribe",
+              language: "en",
+              prompt:
+                "An English-language job interview. The candidate speaks only English. Background noise, breaths, and unclear audio are not speech.",
+            },
+            // server VAD with an explicit silence floor: the turn can only end
+            // after 2s of real silence, so a thinking pause never cuts the
+            // candidate off. threshold 0.7 keeps room noise from registering
+            // as speech at all, and interrupt_response keeps a noise blip from
+            // truncating the agent's question mid-sentence.
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.7,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 2000,
+              interrupt_response: false,
+            },
           },
           output: { voice: "marin" },
         },

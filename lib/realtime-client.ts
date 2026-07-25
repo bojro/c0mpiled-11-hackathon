@@ -36,17 +36,33 @@ export type RealtimeCallbacks = {
 
 export type RealtimeHandle = {
   sessionId: string;
+  candidateName: string;
   stop: () => void;
 };
 
 type RtEvent = {
   type: string;
   transcript?: string;
+  item_id?: string;
   name?: string;
   call_id?: string;
   arguments?: string;
   error?: { message?: string };
 };
+
+// Any character from a non-Latin script (Hangul, CJK, Cyrillic, Arabic,
+// Devanagari, Greek, Hebrew, kana…). gpt-4o-transcribe occasionally
+// hallucinates foreign phrases from noise blips even with language pinned to
+// English ("여기요.", "Вони.") — an English answer never contains these.
+const NON_LATIN_SCRIPT =
+  /[Ͱ-ϿЀ-ӿ֐-׿؀-ۿऀ-ॿ฀-๿ᄀ-ᇿ぀-ヿ㄰-㆏一-鿿가-힯]/;
+
+/** True when a candidate transcript is a noise hallucination, not English. */
+function isNoiseTranscript(text: string): boolean {
+  // Non-Latin scripts are never legitimate here; ¿/¡ marks a Spanish
+  // hallucination (English answers with borrowed words like "résumé" pass).
+  return NON_LATIN_SCRIPT.test(text) || /[¿¡]/.test(text);
+}
 
 export async function startRealtimeInterview(
   cb: RealtimeCallbacks,
@@ -64,9 +80,10 @@ export async function startRealtimeInterview(
     const body = (await mint.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `Could not start realtime session (${mint.status})`);
   }
-  const { sessionId, clientSecret } = (await mint.json()) as {
+  const { sessionId, clientSecret, candidateName } = (await mint.json()) as {
     sessionId: string;
     clientSecret: string;
+    candidateName: string;
   };
 
   const sync = (payload: Record<string, unknown>) =>
@@ -144,6 +161,7 @@ export async function startRealtimeInterview(
     "input_audio_buffer.speech_started",
     "input_audio_buffer.speech_stopped",
     "conversation.item.input_audio_transcription.completed",
+    "conversation.item.deleted",
     "response.audio_transcript.delta",
     "response.output_audio_transcript.delta",
     "response.audio_transcript.done",
@@ -185,10 +203,21 @@ export async function startRealtimeInterview(
         break;
       case "conversation.item.input_audio_transcription.completed": {
         const text = (ev.transcript ?? "").trim();
-        if (text) {
-          cb.onCandidateLine(text);
-          sync({ turns: [{ speaker: "candidate", text }] });
+        if (!text) break;
+        if (isNoiseTranscript(text)) {
+          // Hallucinated foreign-language transcript from a noise blip: keep
+          // it out of the UI and the report, and delete the conversation item
+          // so the model never treats it as something the candidate said.
+          dbg("noise-transcript-dropped", { text: text.slice(0, 80), itemId: ev.item_id });
+          if (ev.item_id) {
+            dc.send(
+              JSON.stringify({ type: "conversation.item.delete", item_id: ev.item_id }),
+            );
+          }
+          break;
         }
+        cb.onCandidateLine(text);
+        sync({ turns: [{ speaker: "candidate", text }] });
         break;
       }
       case "response.audio_transcript.delta":
@@ -277,6 +306,7 @@ export async function startRealtimeInterview(
 
   return {
     sessionId,
+    candidateName,
     stop: () => {
       clearInterval(evidenceTimer);
       for (const track of mic.getTracks()) track.stop();
