@@ -36,18 +36,37 @@ const MAX_TOKENS: Record<Task, number> = {
  * Note: on Opus 5, max_tokens caps thinking AND response text together —
  * that's why the report budget is generous.
  */
-export function modelParams(task: Task) {
+export function modelParams(
+  task: Task,
+  jsonSchema?: Record<string, unknown>,
+) {
+  const format = jsonSchema
+    ? { format: { type: "json_schema" as const, schema: jsonSchema } }
+    : undefined;
+
   if (TIER === "demo") {
     return {
       model: "claude-opus-5",
       max_tokens: MAX_TOKENS[task],
-      output_config: { effort: DEMO_EFFORT[task] },
-    } as const;
+      output_config: { effort: DEMO_EFFORT[task], ...format },
+    };
   }
   return {
     model: "claude-haiku-4-5",
     max_tokens: MAX_TOKENS[task],
-  } as const;
+    // Haiku rejects `effort`; the format constraint is still supported.
+    ...(format ? { output_config: format } : {}),
+  };
+}
+
+/** Pull the first text block out of a response and parse it as JSON.
+ *  Safe because every caller that uses this passes a json_schema format. */
+export function parseStructured<T>(content: { type: string }[]): T {
+  const block = content.find((b) => b.type === "text") as
+    | { type: "text"; text: string }
+    | undefined;
+  if (!block) throw new Error("Model returned no text block");
+  return JSON.parse(block.text) as T;
 }
 
 export const isDemoTier = TIER === "demo";
