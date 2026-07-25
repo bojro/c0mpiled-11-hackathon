@@ -198,11 +198,34 @@ Ask/listen for these — they were not on the event page:
 | Owner | Directory | What lives there | Status |
 |---|---|---|---|
 | **@bojro** | `app/report/`, `components/report/` | Recruiter console — split view, verdict counts, evidence panel. Spec above; build against `data/mock-report.ts`. | not started |
-| **@czhao-mrai** | `app/interview/` | Candidate-facing voice UI — mic capture, continuous speech recognition, speaking the agent's questions aloud | not started, **unclaimed and free to take** |
-| **Claude** | `lib/agent/`, `app/api/` | Interview agent, verification tool loop, report generation, API routes | **in progress — do not edit** |
-| **shared — do not edit alone** | `lib/schema.ts`, `lib/model.ts` | Report contract + model tier config | done |
+| **@czhao-mrai** | `app/interview/`, `lib/agent/`, `app/api/` | The whole interview track: voice UI, interview agent, verification, report generation | **handed off — yours now** |
+| **shared — do not edit alone** | `lib/schema.ts`, `lib/model.ts`, `lib/session.ts` | Report contract, model tier config, session store | done |
 
-⚠️ **czhao: take `app/interview/` only.** `lib/agent/` is listed as yours in earlier versions of this file — that's out of date. Claude is actively writing those files right now and concurrent edits will lose work. It'll be handed off once the agent loop is proven against the live API.
+**czhao — the interview track is written and typechecks, but has never hit the live API.** Treat it as a first draft to verify and fix, not as finished code. The agent loop, verification tools, report generation, and both API routes are all there. What it needs is someone to run it and find out what actually breaks.
+
+## API contract (stable — build the voice UI against this)
+
+**`POST /api/interview`** — one conversational turn.
+
+```jsonc
+// request — omit sessionId to start a new interview
+{ "sessionId": "s_abc123", "said": "We looked at OT first, but..." }
+
+// response
+{
+  "sessionId": "s_abc123",
+  "say": "What did you consider instead of CRDTs?",  // speak this aloud
+  "endInterview": false,                              // true → call /api/report
+  "resume": { "candidateName": "...", "bullets": [...] }
+}
+```
+
+**`POST /api/report`** — `{ "sessionId": "s_abc123" }` → a `ScreeningReport` (see `lib/schema.ts`).
+
+Notes that will save you time:
+- Verification fires automatically in the background when the agent picks a claim to probe. You don't call it; by the time the interview ends the evidence is already attached.
+- Sessions live in an in-memory `Map`. Next's hot reload wipes it — if a session 404s right after you save a file, that's why. Start a new one.
+- Errors return `{ error: string }` with a 4xx/5xx. The voice UI should surface these rather than failing silently, because a stalled mic with no explanation is indistinguishable from a broken demo.
 
 The rule that prevents every merge conflict tonight: **if a file isn't in your directory, you don't edit it.** Need a change in the other person's area? Ask in Discord — it takes 20 seconds and costs less than a conflict at 9:40.
 
@@ -219,6 +242,6 @@ The rule that prevents every merge conflict tonight: **if a file isn't in your d
 1. **Lock the idea by 7:00 PM.** Every minute past that costs a feature. If still debating at 7:00, take the more demoable option, not the more interesting one.
 2. **Write the 60-second demo script before writing code.** The script defines the scope. Anything not in the script does not get built.
 3. **One golden path.** Hardcode/seed everything off the demo path. Fake data is fine if it is *realistic* — judges care that the transformation is real, not that the input was live.
-4. **Deploy early, deploy at 8:00 PM.** A localhost demo that dies on the projector is the most common way to lose. Get it on a public URL while there's still time to fix it.
+4. **Deployment: local-first** (see the decisions table above — this supersedes the "deploy by 8" rule, which assumed a live projector demo). If submission turns out to be a live demo rather than a video, deploy immediately and treat that as the highest-priority task.
 5. **Spend the last 45 minutes on polish, not features.** Given "Most Beautiful" is a prize and the field is 148 people deep, 30 minutes of design is worth more than a 6th feature.
 6. **Have a fallback recording.** A 60-second screen capture of the working flow, made at 9:30 PM, insures against live failure.
