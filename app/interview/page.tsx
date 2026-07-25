@@ -38,26 +38,46 @@ type SpeechRecognitionEventLike = {
 const SILENCE_MS = 2200; // pause length that ends the candidate's turn
 
 export default function InterviewPage() {
+  // ?auto=1 — demo mode: an AI plays the candidate, both voices out loud.
+  const [auto] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("auto"),
+  );
   const [phase, setPhase] = useState<Phase>("idle");
   const [lines, setLines] = useState<Line[]>([]);
   const [interim, setInterim] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const sessionRef = useRef<string | null>(null);
+  const linesRef = useRef<Line[]>([]);
+  const pushLine = (l: Line) => {
+    linesRef.current = [...linesRef.current, l];
+    setLines(linesRef.current);
+  };
   const recRef = useRef<Recognition | null>(null);
   const bufferRef = useRef(""); // finalized speech accumulated this turn
   const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const phaseRef = useRef<Phase>("idle");
   phaseRef.current = phase;
 
-  const say = useCallback((text: string, onDone: () => void) => {
+  const say = useCallback((text: string, onDone: () => void, role: "agent" | "candidate" = "agent") => {
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 1.02;
-    const voices = speechSynthesis.getVoices();
-    u.voice =
+    // Free voice upgrade: macOS ships premium/enhanced neural voices — prefer
+    // them when installed (System Settings → Spoken Content → add voices).
+    const voices = speechSynthesis.getVoices().filter((v) => v.lang.startsWith("en"));
+    const agentVoice =
+      voices.find((v) => /premium/i.test(v.name)) ??
+      voices.find((v) => /enhanced/i.test(v.name)) ??
       voices.find((v) => v.name === "Samantha") ??
-      voices.find((v) => v.lang.startsWith("en") && v.localService) ??
+      voices.find((v) => v.localService) ??
       null;
+    // Candidate gets a distinct voice so the two sides are audibly different.
+    const candidateVoice =
+      voices.find((v) => v.name === "Daniel") ??
+      voices.find((v) => /en-GB|en-AU/.test(v.lang) && v.localService) ??
+      voices.find((v) => v !== agentVoice && v.localService) ??
+      agentVoice;
+    u.voice = role === "candidate" ? candidateVoice : agentVoice;
     u.onend = onDone;
     u.onerror = onDone; // never wedge the state machine on TTS failure
     speechSynthesis.speak(u);
@@ -86,11 +106,13 @@ export default function InterviewPage() {
           endInterview: boolean;
         };
         sessionRef.current = data.sessionId;
-        setLines((l) => [...l, { speaker: "agent", text: data.say }]);
+        pushLine({ speaker: "agent", text: data.say });
         setPhase("speaking");
         say(data.say, () => {
           if (data.endInterview) {
             setPhase("done");
+          } else if (auto) {
+            void autoCandidateTurn();
           } else {
             startListening();
           }
@@ -110,7 +132,7 @@ export default function InterviewPage() {
     setInterim("");
     recRef.current?.stop();
     if (text) {
-      setLines((l) => [...l, { speaker: "you", text }]);
+      pushLine({ speaker: "you", text });
       void advance(text);
     } else {
       // Heard nothing — go back to listening rather than sending air.
@@ -118,6 +140,26 @@ export default function InterviewPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [advance]);
+
+  /** Demo mode: fetch the AI candidate's reply, speak it, hand back to the agent. */
+  const autoCandidateTurn = useCallback(async () => {
+    setPhase("listening"); // green orb = candidate side active
+    try {
+      const res = await fetch("/api/dev/candidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ history: linesRef.current.map((l) => ({ speaker: l.speaker === "agent" ? "agent" : "candidate", text: l.text })) }),
+      });
+      if (!res.ok) throw new Error(`candidate turn failed (${res.status})`);
+      const data = (await res.json()) as { say: string };
+      pushLine({ speaker: "you", text: data.say });
+      say(data.say, () => void advance(data.say), "candidate");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "demo candidate failed");
+      setPhase("error");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [advance, say]);
 
   const startListening = useCallback(() => {
     const w = window as unknown as {
@@ -216,7 +258,7 @@ export default function InterviewPage() {
             {phase === "idle" && "ready"}
             {phase === "connecting" && "starting"}
             {phase === "speaking" && "speaking"}
-            {phase === "listening" && "listening"}
+            {phase === "listening" && (auto ? "candidate" : "listening")}
             {phase === "thinking" && "thinking"}
             {phase === "done" && "complete"}
             {phase === "error" && "error"}
@@ -241,8 +283,13 @@ export default function InterviewPage() {
               onClick={() => void advance()}
               className="mt-8 rounded-md border border-accent/60 bg-accent-dim px-6 py-2.5 font-mono text-sm text-accent transition-colors hover:bg-accent/20"
             >
-              Begin →
+              {auto ? "Run demo interview →" : "Begin →"}
             </button>
+            {auto && (
+              <p className="mt-3 font-mono text-[10.5px] text-ink-muted">
+                demo mode — an AI plays the candidate, both voices live
+              </p>
+            )}
           </motion.div>
         )}
 
@@ -290,7 +337,7 @@ export default function InterviewPage() {
                       l.speaker === "agent" ? "text-accent" : "text-v-green"
                     }`}
                   >
-                    {l.speaker === "agent" ? "Debrief" : "You"}
+                    {l.speaker === "agent" ? "Debrief" : auto ? "Ken" : "You"}
                   </span>
                   <p className="text-[13.5px] leading-relaxed text-ink">{l.text}</p>
                 </motion.div>
