@@ -57,6 +57,20 @@ export const MOCK_REPORT: ScreeningReport = {
       headline:
         "Containerization work is real; the 20% figure is a manager's estimate the candidate never saw measured.",
       ownershipSignal: "contributed",
+      facets: [
+        {
+          claim: "designed and deployed the containerized microservices",
+          span: "Designed and deployed",
+          verdict: "green",
+          note: "Described the actual work concretely — images with device SDKs baked in, a compose file support could run locally.",
+        },
+        {
+          claim: "support tickets fell 20% as a result",
+          span: "20%",
+          verdict: "yellow",
+          note: "The number is a manager's spoken estimate the candidate never saw measured — and they said so themselves.",
+        },
+      ],
       evidence: [
         {
           kind: "transcript",
@@ -83,6 +97,32 @@ export const MOCK_REPORT: ScreeningReport = {
       headline:
         "Scope narrowed from 'refactored the APIs' to 'two endpoints' under follow-up; could not say how 35% was measured or what 'Go-compatible patterns' means.",
       ownershipSignal: "adjacent",
+      facets: [
+        {
+          claim: "refactored the backend service APIs",
+          span: "Refactored",
+          verdict: "red",
+          note: "Scope collapsed under follow-up: two endpoints on one service, in a format a staff engineer had already designed.",
+        },
+        {
+          claim: "the standardization spanned the microservices",
+          span: "across microservices",
+          verdict: "red",
+          note: "Only the device-status service was touched by the candidate.",
+        },
+        {
+          claim: "client-side parsing bugs fell 35%",
+          span: "35%",
+          verdict: "red",
+          note: "The figure was the migration doc's goal for the whole effort, not a measured result — the candidate said they never saw the outcome.",
+        },
+        {
+          claim: "worked on the response-format migration in Node.js/Express",
+          span: "Node.js/Express",
+          verdict: "green",
+          note: "The two-endpoint contribution itself is real work, accurately described once pressed.",
+        },
+      ],
       evidence: [
         {
           kind: "consistency",

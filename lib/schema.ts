@@ -32,6 +32,26 @@ export type Evidence = {
   excerpt?: string;
 };
 
+/**
+ * One atomic sub-claim inside a bullet, judged on its own. A bullet like
+ * "Led migration of payment infrastructure serving 2M users" packs three
+ * separately-checkable assertions — the work happened, THEY led it, the 2M
+ * scale — and they routinely earn different verdicts. Facets let the report
+ * flag exactly which words didn't hold up ("Led") instead of dragging the
+ * whole sentence into one undifferentiated color.
+ */
+export type FacetFinding = {
+  /** The atomic assertion, self-contained: "led the migration effort". */
+  claim: string;
+  /** Shortest verbatim substring of the bullet carrying this facet ("Led",
+   *  "40%") — lets the UI point at the exact words. Null when the facet
+   *  isn't tied to a specific phrase. */
+  span: string | null;
+  verdict: Verdict;
+  /** One line: why this facet got its verdict. */
+  note: string;
+};
+
 export type BulletFinding = {
   /** Verbatim from the résumé, so the recruiter can anchor to what they read. */
   bulletText: string;
@@ -43,6 +63,10 @@ export type BulletFinding = {
   headline: string;
   ownershipSignal: OwnershipSignal;
   evidence: Evidence[];
+  /** Per-facet breakdown. Optional in the type so older fixtures compile;
+   *  the generation schema requires it, and the bullet verdict is enforced
+   *  in code to be no more generous than the worst facet. */
+  facets?: FacetFinding[];
 };
 
 export type TranscriptTurn = {
@@ -146,6 +170,39 @@ export const SCREENING_REPORT_SCHEMA = {
               additionalProperties: false,
             },
           },
+          facets: {
+            type: "array",
+            description:
+              "The bullet decomposed into 1-4 atomic sub-claims, each judged " +
+              "on its own. Required for every finding.",
+            items: {
+              type: "object",
+              properties: {
+                claim: {
+                  type: "string",
+                  description:
+                    "The atomic assertion, self-contained: 'led the migration effort'.",
+                },
+                span: {
+                  type: ["string", "null"],
+                  description:
+                    "Shortest VERBATIM substring of bulletText carrying this " +
+                    "facet ('Led', '40%') — exact characters, so the UI can " +
+                    "mark the words. Null if not tied to a specific phrase.",
+                },
+                verdict: {
+                  type: "string",
+                  enum: ["green", "yellow", "red", "unverified"],
+                },
+                note: {
+                  type: "string",
+                  description: "One line: why this facet got its verdict.",
+                },
+              },
+              required: ["claim", "span", "verdict", "note"],
+              additionalProperties: false,
+            },
+          },
         },
         required: [
           "bulletText",
@@ -155,6 +212,7 @@ export const SCREENING_REPORT_SCHEMA = {
           "headline",
           "ownershipSignal",
           "evidence",
+          "facets",
         ],
         additionalProperties: false,
       },

@@ -55,5 +55,37 @@ Write the screening report. Produce findings ONLY for claims that were actually 
     ],
   });
 
-  return parseStructured<ScreeningReport>(response.content);
+  const report = parseStructured<ScreeningReport>(response.content);
+  return enforceFacetConsistency(report);
+}
+
+/** Severity used only for the facet → bullet rollup. Green and unverified sit
+ *  at the same level on purpose: an unverified facet is not a downgrade
+ *  ("no public record" must never read as an accusation). */
+const ROLLUP_SEVERITY = { red: 3, yellow: 2, green: 1, unverified: 1 } as const;
+
+/**
+ * Code-enforced invariants the prompt asks for but generation can't guarantee:
+ * a bullet verdict is never more generous than its worst facet, and a facet
+ * `span` the UI can't actually find in the bullet text is nulled rather than
+ * trusted. Deterministic — the same report always rolls up the same way.
+ */
+function enforceFacetConsistency(report: ScreeningReport): ScreeningReport {
+  for (const finding of report.findings) {
+    if (!finding.facets?.length) continue;
+    for (const facet of finding.facets) {
+      if (facet.span && !finding.bulletText.includes(facet.span)) {
+        facet.span = null;
+      }
+    }
+    const worst = Math.max(
+      ...finding.facets.map((f) => ROLLUP_SEVERITY[f.verdict]),
+    );
+    if (worst >= 3 && finding.verdict !== "red") {
+      finding.verdict = "red";
+    } else if (worst === 2 && finding.verdict === "green") {
+      finding.verdict = "yellow";
+    }
+  }
+  return report;
 }

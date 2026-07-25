@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import type { BulletFinding, Evidence } from "@/lib/schema";
+import type { BulletFinding, Evidence, FacetFinding } from "@/lib/schema";
 import { clipFor } from "@/data/audio-map";
 import { AudioClip } from "./AudioClip";
 import { EVIDENCE_KIND, VERDICT } from "./verdict";
@@ -71,6 +71,20 @@ export function EvidencePanel({
           </p>
         </div>
 
+        {/* Facet breakdown — which words held up and which didn't */}
+        {finding.facets && finding.facets.length > 0 && (
+          <div className="rounded-lg border border-line bg-surface p-5">
+            <p className="font-mono text-[11px] tracking-widest text-ink-muted uppercase">
+              Claim by claim
+            </p>
+            <div className="mt-3 flex flex-col gap-2.5">
+              {finding.facets.map((f, i) => (
+                <FacetRow key={i} facet={f} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Evidence items */}
         <div className="flex flex-col gap-4">
           {finding.evidence.map((e, i) => (
@@ -79,6 +93,40 @@ export function EvidencePanel({
         </div>
       </motion.section>
     </AnimatePresence>
+  );
+}
+
+/** One atomic sub-claim: dot + the exact words it hangs on + why. Color never
+ *  carries the verdict alone — the label text is always present. */
+function FacetRow({ facet }: { facet: FacetFinding }) {
+  const v = VERDICT[facet.verdict];
+  return (
+    <div className="flex items-baseline gap-2.5">
+      <span
+        aria-hidden
+        className="mt-[3px] h-2 w-2 shrink-0 self-start rounded-full"
+        style={{ background: v.color }}
+      />
+      <div className="min-w-0">
+        <p className="text-[13px] leading-snug text-ink">
+          {facet.span && (
+            <span className="font-mono text-[12px]" style={{ color: v.color }}>
+              &ldquo;{facet.span}&rdquo;{" "}
+            </span>
+          )}
+          {facet.claim}
+          <span
+            className="ml-2 font-mono text-[10px] tracking-wider uppercase"
+            style={{ color: v.color }}
+          >
+            {v.label}
+          </span>
+        </p>
+        <p className="mt-0.5 text-[12px] leading-snug text-ink-secondary">
+          {facet.note}
+        </p>
+      </div>
+    </div>
   );
 }
 
