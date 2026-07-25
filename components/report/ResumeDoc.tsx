@@ -60,23 +60,25 @@ export function ResumeDoc({
       </ul>
     );
 
-  // Fit-to-page: the sheet keeps US-Letter proportions; if the content runs
-  // longer than the page, scale it down like a PDF viewer's fit-to-page.
+  // Fit-to-page, oscillation-free: content always lays out at a CONSTANT
+  // design width, so its height never depends on the scale we apply — the
+  // feedback loop that caused shuddering is impossible by construction.
+  // scale = min(fit page width, fit page height), like a PDF viewer.
+  const DESIGN_W = 800;
   const pageRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState(0.9);
 
   useLayoutEffect(() => {
     const fit = () => {
       const page = pageRef.current;
       const content = contentRef.current;
       if (!page || !content) return;
-      const pageH = page.clientHeight;
-      const contentH = content.scrollHeight;
-      // Quantize + dead-band so the width-compensation feedback loop settles
-      // instead of oscillating with ResizeObserver.
-      const next = Math.round((contentH > pageH ? pageH / contentH : 1) * 100) / 100;
-      setScale((prev) => (Math.abs(prev - next) < 0.02 ? prev : next));
+      const next = Math.min(
+        page.clientWidth / DESIGN_W,
+        page.clientHeight / content.scrollHeight,
+      );
+      setScale((prev) => (Math.abs(prev - next) < 0.005 ? prev : next));
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -88,14 +90,15 @@ export function ResumeDoc({
   return (
     <div
       ref={pageRef}
-      className="aspect-[17/22] overflow-hidden rounded-[2px] bg-[#fdfdfb] text-[#111] shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_18px_50px_rgba(0,0,0,0.55)]"
+      className="flex aspect-[17/22] justify-center overflow-hidden rounded-[2px] bg-[#fdfdfb] text-[#111] shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_18px_50px_rgba(0,0,0,0.55)]"
       style={{ fontFamily: SERIF }}
     >
-      <div
-        ref={contentRef}
-        className="origin-top-left px-11 py-8"
-        style={{ transform: `scale(${scale})`, width: scale < 1 ? `${100 / scale}%` : undefined }}
-      >
+      <div style={{ width: DESIGN_W * scale }}>
+        <div
+          ref={contentRef}
+          className="origin-top-left px-11 py-8"
+          style={{ width: DESIGN_W, transform: `scale(${scale})` }}
+        >
       {/* Name + pipe-separated contact line, centered — Jake's header */}
       <div className="text-center">
         <h1 className="text-[26px] font-bold tracking-[0.01em]">{doc.name}</h1>
@@ -202,6 +205,7 @@ export function ResumeDoc({
           ))}
         </div>
       </section>
+        </div>
       </div>
     </div>
   );
