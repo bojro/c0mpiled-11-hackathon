@@ -5,16 +5,17 @@ import type { ResumeDocument } from "@/data/resume";
 import { VERDICT } from "./verdict";
 
 /**
- * The résumé rendered as the paper document it is — a white sheet in the dark
- * console, set in serif like the PDF the candidate actually submitted.
+ * The résumé rendered as the paper document it is — styled after Jake's
+ * LaTeX template (small-caps section rules, bold-title/italic-company rows,
+ * dense one-page spacing), which is what the submitted PDF is based on.
  *
  * Interrogated claims carry a highlighter stroke in their verdict color and
- * are clickable; everything else is untouched document text. The metaphor is
- * a recruiter's marked-up printout, not an app screen.
+ * are clickable; everything else is untouched document text.
  */
 
-/** Highlighter fills tuned for white paper (the dark-surface --v-*-dim tokens
- *  are too faint here). Text stays near-black on all of them. */
+const SERIF = `"CMU Serif", "Latin Modern Roman", "Computer Modern", Georgia, "Times New Roman", serif`;
+
+/** Highlighter fills tuned for white paper. Text stays near-black on all. */
 const HIGHLIGHT: Record<Verdict, { fill: string; hover: string }> = {
   green: { fill: "rgba(52, 211, 153, 0.28)", hover: "rgba(52, 211, 153, 0.42)" },
   yellow: { fill: "rgba(252, 211, 77, 0.38)", hover: "rgba(252, 211, 77, 0.55)" },
@@ -22,7 +23,7 @@ const HIGHLIGHT: Record<Verdict, { fill: string; hover: string }> = {
   unverified: { fill: "rgba(156, 163, 175, 0.30)", hover: "rgba(156, 163, 175, 0.45)" },
 };
 
-/** Small ink-on-paper tag colors for the verdict label under a selected bullet. */
+/** Pen-ink shades for the margin note under a highlighted bullet. */
 const TAG_INK: Record<Verdict, string> = {
   green: "#047857",
   yellow: "#92400e",
@@ -43,78 +44,140 @@ export function ResumeDoc({
 }) {
   const findingByText = new Map(findings.map((f, i) => [f.bulletText, i]));
 
+  const renderBullets = (bullets: string[]) =>
+    bullets.length === 0 ? null : (
+      <ul className="mt-[3px] flex flex-col gap-[2px]">
+        {bullets.map((text) => {
+          const fi = findingByText.get(text);
+          return (
+            <li key={text.slice(0, 40)} className="flex gap-[7px] pl-[14px]">
+              <span className="text-[7px] leading-[2.4]">•</span>
+              {fi === undefined ? (
+                <p className="text-[11.5px] leading-[1.45]">{text}</p>
+              ) : (
+                <HighlightedBullet
+                  text={text}
+                  finding={findings[fi]}
+                  isSelected={fi === selected}
+                  onClick={() => onSelect(fi)}
+                />
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    );
+
   return (
     <div
-      className="rounded-sm bg-[#fdfdfb] px-10 py-9 text-[#1a1a1a] shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_18px_50px_rgba(0,0,0,0.55)]"
-      style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+      className="rounded-[2px] bg-[#fdfdfb] px-11 py-8 text-[#111] shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_18px_50px_rgba(0,0,0,0.55)]"
+      style={{ fontFamily: SERIF }}
     >
-      {/* Document header — centered, like the PDF */}
+      {/* Name + pipe-separated contact line, centered — Jake's header */}
       <div className="text-center">
-        <h1 className="text-[22px] font-bold tracking-tight">{doc.name}</h1>
-        <p className="mt-1 text-[11px] text-[#444]">{doc.contact}</p>
+        <h1 className="text-[26px] font-bold tracking-[0.01em]">{doc.name}</h1>
+        <p className="mt-[2px] text-[10.5px] text-[#333]">
+          {doc.contact.split("·").map((part, i, arr) => (
+            <span key={i}>
+              <span className="underline decoration-[#999] underline-offset-2">
+                {part.trim()}
+              </span>
+              {i < arr.length - 1 && <span className="mx-1.5 text-[#333]">|</span>}
+            </span>
+          ))}
+        </p>
       </div>
 
-      {doc.sections.map((section) => (
-        <section key={section.heading} className="mt-5">
-          <h2 className="border-b border-[#1a1a1a] pb-0.5 text-[13px] font-bold">
-            {section.heading}
-          </h2>
+      {doc.sections.map((section) => {
+        const isExperience = section.heading === "Experience";
+        const isProjects = section.heading === "Projects";
+        return (
+          <section key={section.heading} className="mt-[14px]">
+            {/* Small-caps heading over a full-width rule — \titlerule */}
+            <h2
+              className="border-b border-[#111] pb-[1px] text-[12px] font-normal tracking-[0.06em]"
+              style={{ fontVariant: "small-caps" }}
+            >
+              {section.heading.toLowerCase()}
+            </h2>
 
-          {section.entries.map((entry) => (
-            <div key={entry.org + (entry.dates ?? "")} className="mt-2.5">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="text-[12.5px] font-bold">{entry.org}</p>
-                {entry.location && (
-                  <p className="shrink-0 text-[12.5px] font-bold">{entry.location}</p>
+            {section.entries.map((entry) => (
+              <div key={entry.org + (entry.dates ?? "")} className="mt-[7px]">
+                {isProjects ? (
+                  /* Projects: "Name | Tech" left, dates right, one line */
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="text-[11.5px]">
+                      <span className="font-bold">{entry.org}</span>
+                      {entry.title && (
+                        <>
+                          <span className="mx-1">|</span>
+                          <span className="italic">{entry.title}</span>
+                        </>
+                      )}
+                    </p>
+                    {entry.dates && (
+                      <p className="shrink-0 text-[11px] italic">{entry.dates}</p>
+                    )}
+                  </div>
+                ) : isExperience ? (
+                  /* Experience: title bold / dates; company italic / location */
+                  <>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="text-[12px] font-bold">{entry.title}</p>
+                      {entry.dates && (
+                        <p className="shrink-0 text-[11px]">{entry.dates}</p>
+                      )}
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="text-[11.5px] italic">{entry.org}</p>
+                      {entry.location && (
+                        <p className="shrink-0 text-[11px] italic">{entry.location}</p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  /* Education: institution bold / location; degree italic / dates */
+                  <>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="text-[12px] font-bold">{entry.org}</p>
+                      {entry.location && (
+                        <p className="shrink-0 text-[11px]">{entry.location}</p>
+                      )}
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      {entry.title && (
+                        <p className="text-[11.5px] italic">{entry.title}</p>
+                      )}
+                      {entry.dates && (
+                        <p className="shrink-0 text-[11px] italic">{entry.dates}</p>
+                      )}
+                    </div>
+                  </>
                 )}
+
+                {renderBullets(entry.bullets)}
               </div>
-              <div className="flex items-baseline justify-between gap-3">
-                {entry.title && (
-                  <p className="text-[12px] italic">{entry.title}</p>
-                )}
-                {entry.dates && (
-                  <p className="shrink-0 text-[12px] italic">{entry.dates}</p>
-                )}
-              </div>
+            ))}
+          </section>
+        );
+      })}
 
-              {entry.bullets.length > 0 && (
-                <ul className="mt-1 flex flex-col gap-[3px]">
-                  {entry.bullets.map((text) => {
-                    const fi = findingByText.get(text);
-                    return (
-                      <li key={text.slice(0, 40)} className="flex gap-2 pl-3">
-                        <span className="text-[10px] leading-[1.85]">●</span>
-                        {fi === undefined ? (
-                          <p className="text-[12px] leading-relaxed">{text}</p>
-                        ) : (
-                          <HighlightedBullet
-                            text={text}
-                            finding={findings[fi]}
-                            isSelected={fi === selected}
-                            onClick={() => onSelect(fi)}
-                          />
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          ))}
-        </section>
-      ))}
-
-      {/* Skills */}
-      <section className="mt-5">
-        <h2 className="border-b border-[#1a1a1a] pb-0.5 text-[13px] font-bold">
-          Technical Skills
+      {/* Technical Skills — label bold, one dense block */}
+      <section className="mt-[14px]">
+        <h2
+          className="border-b border-[#111] pb-[1px] text-[12px] font-normal tracking-[0.06em]"
+          style={{ fontVariant: "small-caps" }}
+        >
+          technical skills
         </h2>
-        {doc.skills.map((s) => (
-          <p key={s.label} className="mt-1 text-[12px] leading-relaxed">
-            <span className="font-bold">{s.label}: </span>
-            {s.items}
-          </p>
-        ))}
+        <div className="mt-[5px] pl-[14px]">
+          {doc.skills.map((s) => (
+            <p key={s.label} className="text-[11.5px] leading-[1.5]">
+              <span className="font-bold">{s.label}: </span>
+              {s.items}
+            </p>
+          ))}
+        </div>
       </section>
     </div>
   );
@@ -141,10 +204,9 @@ function HighlightedBullet({
         aria-current={isSelected}
         className="group relative cursor-pointer text-left"
       >
-        {/* The highlighter stroke: slightly ragged box-decoration so wrapped
-            lines each carry their own stroke, like a real highlighter pass */}
+        {/* Highlighter stroke, cloned across wrapped lines */}
         <span
-          className="text-[12px] leading-relaxed transition-[background-color] duration-150"
+          className="text-[11.5px] leading-[1.45] transition-[background-color] duration-150"
           style={{
             background: isSelected ? h.hover : h.fill,
             boxDecorationBreak: "clone",
@@ -165,9 +227,9 @@ function HighlightedBullet({
         </span>
       </button>
 
-      {/* Margin note: verdict label in pen-on-paper ink */}
+      {/* Margin note: verdict label in pen ink */}
       <p
-        className="mt-0.5 font-mono text-[9.5px] tracking-wide uppercase"
+        className="mt-[1px] font-mono text-[9px] tracking-wide uppercase"
         style={{ color: TAG_INK[finding.verdict] }}
       >
         {v.label}
