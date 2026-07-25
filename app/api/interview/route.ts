@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { applyTurn, nextQuestion } from "@/lib/agent/interviewer";
-import { verifyBullet } from "@/lib/agent/verify";
+import { kickOffVerification } from "@/lib/agent/orchestrate";
 import { createSession, getSession, saveSession } from "@/lib/session";
 
 /**
@@ -65,34 +65,5 @@ export async function POST(req: Request) {
       { error: err instanceof Error ? err.message : "Interview turn failed" },
       { status: 500 },
     );
-  }
-}
-
-/** Fire-and-forget verification. Failures degrade the report to `unverified`
- *  rather than breaking the interview, which is the right tradeoff live. */
-async function kickOffVerification(sessionId: string, bulletId: string) {
-  try {
-    const state = getSession(sessionId);
-    if (!state) return;
-
-    const probe = state.probes.find((p) => p.bulletId === bulletId);
-    // Only verify once per claim, on first selection.
-    if (!probe || probe.evidence.length > 0) return;
-
-    const bullet = state.resume.bullets.find((b) => b.id === bulletId);
-    if (!bullet) return;
-
-    const evidence = await verifyBullet(bullet, state.resume);
-
-    // Re-read: the interview has advanced while this was in flight.
-    const fresh = getSession(sessionId);
-    if (!fresh) return;
-    const target = fresh.probes.find((p) => p.bulletId === bulletId);
-    if (target) {
-      target.evidence.push(...evidence);
-      saveSession(fresh);
-    }
-  } catch (err) {
-    console.error("[verification]", bulletId, err);
   }
 }

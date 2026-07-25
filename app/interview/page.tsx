@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { startRealtimeInterview, type RealtimeHandle } from "@/lib/realtime-client";
 
 /**
  * The candidate's voice conversation — the OA.
@@ -38,10 +39,17 @@ type SpeechRecognitionEventLike = {
 const SILENCE_MS = 2200; // pause length that ends the candidate's turn
 
 export default function InterviewPage() {
-  // ?auto=1 — demo mode: an AI plays the candidate, both voices out loud.
+  // Modes: default = OpenAI Realtime speech-to-speech. ?fallback=1 = the
+  // browser-native STT/TTS loop. ?auto=1 = AI plays the candidate (uses the
+  // native loop). The engine behind all three is identical.
   const [auto] = useState(
     () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("auto"),
   );
+  const [fallback] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("fallback"),
+  );
+  const realtime = !auto && !fallback;
+  const rtRef = useRef<RealtimeHandle | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [lines, setLines] = useState<Line[]>([]);
   const [interim, setInterim] = useState("");
@@ -161,6 +169,30 @@ export default function InterviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [advance, say]);
 
+  const startRealtime = useCallback(async () => {
+    setPhase("connecting");
+    try {
+      rtRef.current = await startRealtimeInterview({
+        onPhase: (p) => setPhase(p),
+        onAgentLine: (text) => pushLine({ speaker: "agent", text }),
+        onCandidateLine: (text) => pushLine({ speaker: "you", text }),
+        onEnd: () => {
+          rtRef.current?.stop();
+          setPhase("done");
+        },
+        onError: (m) => {
+          setError(m);
+          setPhase("error");
+        },
+      });
+      sessionRef.current = rtRef.current.sessionId;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Realtime connection failed.");
+      setPhase("error");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const startListening = useCallback(() => {
     const w = window as unknown as {
       webkitSpeechRecognition?: new () => Recognition;
@@ -225,6 +257,7 @@ export default function InterviewPage() {
     return () => {
       speechSynthesis.cancel();
       recRef.current?.stop();
+      rtRef.current?.stop();
       if (silenceTimer.current) clearTimeout(silenceTimer.current);
     };
   }, []);
@@ -280,7 +313,7 @@ export default function InterviewPage() {
               pause when you&apos;re done and I&apos;ll pick up from there.
             </p>
             <button
-              onClick={() => void advance()}
+              onClick={() => (realtime ? void startRealtime() : void advance())}
               className="mt-8 rounded-md border border-accent/60 bg-accent-dim px-6 py-2.5 font-mono text-sm text-accent transition-colors hover:bg-accent/20"
             >
               {auto ? "Run demo interview →" : "Begin →"}
@@ -288,6 +321,11 @@ export default function InterviewPage() {
             {auto && (
               <p className="mt-3 font-mono text-[10.5px] text-ink-muted">
                 demo mode — an AI plays the candidate, both voices live
+              </p>
+            )}
+            {realtime && (
+              <p className="mt-3 font-mono text-[10.5px] text-ink-muted">
+                speech-to-speech · gpt-realtime carries the voice, claude runs the investigation
               </p>
             )}
           </motion.div>
@@ -360,6 +398,7 @@ export default function InterviewPage() {
           <button
             onClick={() => {
               recRef.current?.stop();
+              rtRef.current?.stop();
               speechSynthesis.cancel();
               setPhase("done");
             }}

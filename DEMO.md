@@ -36,13 +36,14 @@ Screens in order. Total ~75s at a calm pace; cut the apply flow if trimming to 6
 
 **"Why do you win vs. HireVue / paradox.ai?"** They score *how* you talk (tone, video) — we verify *what you claim*, and we show our work: every verdict expands to the transcript, audio, and raw record pulls behind it. An assessment you can audit is a different product from a score you have to trust.
 
-**"Why not speech-to-speech?" (Will Bodewes suggested OpenAI Realtime — answer him directly):** "You're right, and that's the production plan. The voice layer is deliberately pluggable — tonight it's browser-native so nothing can die on venue wifi, and the swap-in is OpenAI Realtime, Gemini Live, or a Phonely-style stack. What doesn't change is the part we actually built: the interviewer's interrogation strategy, the live verification tools, and the evidence report. Speech-to-speech makes it *sound* human; the investigation is what makes it worth listening to."
+**Voice architecture (Will Bodewes suggested OpenAI Realtime — tell him you shipped it):** "We took your suggestion — the default interview is now speech-to-speech on gpt-realtime over WebRTC. The architecture is the interesting part: GPT carries the voice, but the interrogation protocol rides in as session instructions, and tool calls sync every probe back to our engine — where Claude runs the external verification and writes the evidence report. The voice layer is pluggable (there's a browser-native fallback one query-param away, and auto-demo mode where an AI plays the candidate); the investigation engine is the product."
 
 **Tech (Jeff An / Random Labs / Superset will ask):** Next.js 16 + Claude Opus 5 (Haiku for dev loop), three call shapes — low-effort conversational turns, a tool-runner agentic loop for verification (GitHub + CrustData as tools), high-effort structured output for the report. Browser-native voice: zero vendors, can't die on wifi. Verdict palette is CVD-validated (ΔE 9.6 worst-pair, deutan) — checked computationally, not by eye.
 
 ## Pre-demo checklist
 
-- [ ] `MODEL_TIER=demo` in `.env.local` (Opus for the live loop), restart dev server
+- [ ] `MODEL_TIER=demo` in `.env.local` (Opus for report/verification), restart dev server
+- [ ] OPENAI_API_KEY present (speech-to-speech default); if wifi is hostile, demo `/interview?fallback=1` or `?auto=1` instead
 - [ ] Chrome, mic permission pre-granted on `/interview`
 - [ ] Volume up for the audio clip beat
 - [ ] Record the golden path once as a fallback before any live run
