@@ -203,13 +203,7 @@ Ask/listen for these — they were not on the event page:
 
 **Conflict avoidance beats conflict resolution — own directories, not features.**
 
-| Owner | Directory | What lives there | Status |
-|---|---|---|---|
-| **@bojro** | `app/report/`, `components/report/` | Recruiter console — split view, verdict counts, evidence panel. Spec above; build against `data/mock-report.ts`. | not started |
-| **@czhao-mrai** | `app/interview/`, `lib/agent/`, `app/api/` | The whole interview track: voice UI, interview agent, verification, report generation | **handed off — yours now** |
-| **shared — do not edit alone** | `lib/schema.ts`, `lib/model.ts`, `lib/session.ts` | Report contract, model tier config, session store | done |
-
-**czhao — the interview track is written and typechecks, but has never hit the live API.** Treat it as a first draft to verify and fix, not as finished code. The agent loop, verification tools, report generation, and both API routes are all there. What it needs is someone to run it and find out what actually breaks.
+**As of ~8:45 PM: czhao is not expected to arrive — Bojro + Claude own the whole build.** Every surface exists: `/` pipeline, `/report` paper console, `/apply`, `/status`, `/interview` voice loop, `app/api/*` agent routes. The prior split is obsolete; if czhao does show up, they should pull `main` and ask before touching anything.
 
 ## API contract (stable — build the voice UI against this)
 
